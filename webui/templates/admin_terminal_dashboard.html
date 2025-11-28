@@ -1,0 +1,302 @@
+{% extends "base_panel.html" %}
+{% block title %}Panel | Administrador de Terminal{% endblock %}
+
+{% block head_css %}
+<style>
+  html, body {
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+  }
+
+  body { background: #0f1e25; }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    width: 100vw;
+    min-height: 100vh;
+    margin: 0;
+    margin-left: calc(50% - 50vw);
+  }
+
+  /* ===== SIDEBAR ===== */
+  .sidebar {
+    background: #1b7f6b;
+    color: #fff;
+    padding: 20px 0;
+  }
+  .brand { font-weight: 800; text-align: center; margin: 6px 0 12px; letter-spacing: .5px; }
+  .menu { list-style: none; margin: 0; padding: 6px 0; }
+  .menu a {
+    display: block;
+    padding: 12px 18px;
+    color: #eafaf6;
+    text-decoration: none;
+    font-size: 15px;
+    border-radius: 8px;
+    margin: 2px 8px;
+  }
+  .menu a:hover { background: #166b5a; }
+
+  /* ===== MAIN CONTENT ===== */
+  .main {
+    background: #ffffff;
+    padding: 24px 32px;
+    overflow: auto;
+  }
+
+  .page-title {
+    background: #2a9c86;
+    color: #fff;
+    font-weight: 800;
+    padding: 14px 18px;
+    border-radius: 8px;
+    text-align: center;
+    margin-bottom: 18px;
+  }
+
+  .hello { margin: 8px 0 16px; color: #374151; }
+
+  /* ===== CARDS ===== */
+  .cards {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .card {
+    flex: 1;
+    min-width: 200px;
+    background: #fff;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    text-align: center;
+  }
+  .card h3 { font-size: 16px; color: #2a9c86; margin-bottom: 6px; }
+  .card p { font-size: 28px; font-weight: 800; margin: 0; color: #1b4f4a; }
+
+  /* ===== TABLE ===== */
+  .table-wrap {
+    max-height: 55vh;
+    overflow-y: auto;
+    background:#f9fafb;
+    border-radius:12px;
+    padding:14px;
+  }
+  table { width:100%; border-collapse:collapse; background:#fff; }
+  th, td { padding:12px 10px; border-bottom:1px solid #e5e7eb; font-size:14px; }
+  th { background:#e6f3f0; color:#0f5132; text-align:left; }
+  .badge { padding:4px 8px; border-radius:12px; font-size:12px; }
+  .badge.ok { background:#e8f7ee; color:#1e7d3f; }
+  .badge.warn { background:#fff3cd; color:#7a5d00; }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 1024px) {
+    .layout { grid-template-columns: 200px 1fr; }
+  }
+  @media (max-width: 768px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { position: static; width: 100%; }
+  }
+
+  .tooltip-container {
+    position: relative;
+    cursor: pointer;
+}
+
+.motivo-preview {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 240px; /* Ajusta según la tabla */
+    display: inline-block;
+}
+
+.tooltip-box {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 999;
+    background: #ffffff;
+    padding: 10px 12px;
+    max-width: 320px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    border: 1px solid #ddd;
+    white-space: normal;
+}
+
+.tooltip-container:hover .tooltip-box {
+    display: block;
+}
+
+</style>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">JAKSA</div>
+    <ul class="menu">
+      <li><a href="{% url 'panel_admin_terminal' %}">Dashboard</a></li>
+      <li><a href="#">Consultar incidencia</a></li>
+      <li><a href="#">Reportes</a></li>
+      <li><a href="{% url 'logout' %}">Cerrar sesión</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main content -->
+  <section class="main">
+    <div class="page-title">Sistema de control de incidencias</div>
+    <p class="hello">Bienvenido {{ usuario_nombre }} — Terminal: <strong>{{ terminal_name }}</strong></p>
+
+    <!-- Tarjetas resumen -->
+    <div class="cards">
+      <div class="card">
+        <h3>Incidencias activas</h3>
+        <p>{{ cards.activas }}</p>
+      </div>
+      <div class="card">
+        <h3>Incidencias pendientes</h3>
+        <p>{{ cards.pendientes }}</p>
+      </div>
+      <div class="card">
+        <h3>Incidencias resueltas</h3>
+        <p>{{ cards.resueltas }}</p>
+      </div>
+    </div>
+
+    <!-- Filtro por fecha -->
+    <form method="get" style="margin: 0 0 12px 0; display:flex; gap:8px; align-items:center;">
+      <label>Desde
+        <input type="date" name="rev_desde" value="{{ rev_desde }}">
+      </label>
+      <label>Hasta
+        <input type="date" name="rev_hasta" value="{{ rev_hasta }}">
+      </label>
+      <button type="submit">Filtrar</button>
+      <a href="{% url 'panel_admin_terminal' %}">Limpiar</a>
+    </form>
+
+    <!-- Tabla -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha de incidencia</th>
+            <th>Nombre</th>
+            <th>Usuario</th>
+            <th>Cargo</th>
+            <th>Terminal</th>
+            <th>Control interno</th>
+            <th>Estado</th>
+            <th>Motivo</th>
+            <th>Fecha de revisión</th>
+            <th>Evidencia</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td>{{ r.fecha|date:"d-m-y" }}</td>
+            <td>{{ r.nombre }}</td>
+            <td>{{ r.usuario }}</td>
+            <td>{{ r.cargo }}</td>
+            <td>{{ r.terminal }}</td>
+            <td>{{ r.control_interno }}</td>
+            <td>
+              {% if r.estado == "Conforme" %}
+                <span class="badge ok">Conforme</span>
+              {% else %}
+                <span class="badge warn">Observación</span>
+              {% endif %}
+            </td>
+            <td class="tooltip-container"><span class="motivo-preview">{{ r.motivo|truncatechars:30 }}</span>
+            <div class="tooltip-box">{{ r.motivo }}</div></td>
+            <td>{{ r.fecha_revision|date:"d-m-Y" }}</td>
+            <td class="actions">
+              {% if r.evidencia %}
+                <a href="{{ r.evidencia }}" class="evidence-link" data-url="{{ r.evidencia }}">Ver</a>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="10" style="text-align:center; color:#6b7280;">No hay incidencias</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Paginación -->
+{% if page_obj %}
+  <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-top:10px;">
+      {% if page_obj.has_previous %}
+        <a href="?page=1{{ preserved }}">&laquo; Primero</a>
+        <a href="?page={{ page_obj.previous_page_number }}{{ preserved }}">Anterior</a>
+      {% endif %}
+        <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{{ preserved }}">Siguiente</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}{{ preserved }}">Último &raquo;</a>
+      {% endif %}
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}
+
+<!-- Modal evidencia -->
+<div id="evidenceModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:9999; align-items:center; justify-content:center; padding:24px;">
+  <div style="position:relative; max-width:90vw; max-height:90vh;">
+    <button id="closeEvidence"
+            style="position:absolute; top:-12px; right:-12px; background:#fff; border:none; border-radius:999px; width:36px; height:36px; cursor:pointer; font-weight:700;">
+      ✕
+    </button>
+    <img id="evidenceImg" src="" alt="Evidencia"
+         style="max-width:90vw; max-height:85vh; display:block; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.35);" />
+  </div>
+</div>
+
+<script>
+  (function () {
+    const modal = document.getElementById('evidenceModal');
+    const img = document.getElementById('evidenceImg');
+    const btnX = document.getElementById('closeEvidence');
+    const IMG_EXT = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
+
+    function isImage(url) {
+      const u = (url || '').toLowerCase();
+      return IMG_EXT.some(ext => u.endsWith(ext));
+    }
+
+    function openModal(url) {
+      img.src = url;
+      modal.style.display = 'flex';
+    }
+
+    function closeModal() {
+      modal.style.display = 'none';
+      img.src = '';
+    }
+
+    btnX.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.style.display === 'flex') closeModal(); });
+
+    document.querySelectorAll('.evidence-link').forEach(a => {
+      a.addEventListener('click', (e) => {
+        const url = a.dataset.url || a.href;
+        if (isImage(url)) {
+          e.preventDefault();
+          openModal(url);
+        } else {
+          a.setAttribute('target', '_blank');
+        }
+      });
+    });
+  })();
+</script>

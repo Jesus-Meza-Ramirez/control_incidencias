@@ -1,0 +1,157 @@
+{% extends "base_panel.html" %}
+{% block title %}Panel | Administrador del sistema{% endblock %}
+
+{% block head_css %}
+<style>
+  /* ===== layout base (hereda tu estructura) ===== */
+  html, body { height: 100%; margin: 0; overflow: hidden; }
+  body { background: #eef2f3; }
+
+  .layout{
+    display:grid;
+    grid-template-columns:240px 1fr;
+    width:100vw; min-height:100vh;
+    margin:0;
+    margin-left:calc(50% - 50vw);
+  }
+
+  /* ===== sidebar ===== */
+  .sidebar{ background:#1b7f6b; color:#fff; padding:20px 0; }
+  .brand{ font-weight:800; text-align:center; margin:6px 0 12px; letter-spacing:.5px; }
+  .menu{ list-style:none; margin:0; padding:6px 0; }
+  .menu a{
+    display:block; padding:12px 18px; color:#eafaf6; text-decoration:none;
+    font-size:15px; border-radius:8px; margin:2px 8px;
+  }
+  .menu a:hover{ background:#166b5a; }
+
+  /* ===== main ===== */
+  .main{ background:#f7f9fa; padding:24px 32px; overflow:auto; }
+
+  /* barra verde superior */
+  .title-strip{
+    background:#2a9c86; color:#fff; font-weight:900; letter-spacing:.5px;
+    padding:18px; border-radius:10px; text-align:center; margin-bottom:18px;
+    font-size:28px;
+  }
+
+  .hello{ color:#324b4a; margin:8px 0 18px; font-size:18px; }
+
+  /* ===== botones de acciones ===== */
+  .actions-bar{ display:flex; gap:14px; flex-wrap:wrap; margin:10px 0 18px; }
+  .btn{
+    border:0; border-radius:22px; padding:10px 20px; font-weight:700; cursor:pointer;
+    color:#fff; box-shadow:0 2px 6px rgba(0,0,0,.08);
+  }
+  .btn-add{ background:#2a9c86; }
+  .btn-edit{ background:#5b8ac3; }
+  .btn-sync{ background:#f5a524; }
+  .btn-del{ background:#db3a62; }
+
+  /* ===== tabla ===== */
+  .table-card{
+    background:#ffffff; border-radius:14px; padding:14px;
+    box-shadow:0 6px 18px rgba(0,0,0,.06);
+  }
+  .table-wrap{ max-height:70vh; overflow:auto; border-radius:10px; }
+  table{ width:100%; border-collapse:collapse; background:#fff; }
+  th,td{ padding:14px 12px; border-bottom:1px solid #e5e7eb; }
+  th{
+    background:#e6f3f0; color:#0f5132; text-align:left;
+    font-size:14px; font-weight:800; border-top:1px solid #d8ebe6;
+  }
+  td{ font-size:15px; color:#2d3c3a; }
+
+  .tag-on{ background:#e8f7ee; color:#1e7d3f; padding:3px 10px; border-radius:999px; font-weight:700; font-size:12px; }
+  .tag-off{ background:#fdecec; color:#b21c1c; padding:3px 10px; border-radius:999px; font-weight:700; font-size:12px; }
+
+  /* ===== responsive ===== */
+  @media (max-width:1024px){ .layout{ grid-template-columns:200px 1fr; } }
+  @media (max-width:768px){ .layout{ grid-template-columns:1fr; } .sidebar{ position:static; width:100%; } }
+</style>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">JAKSA</div>
+    <ul class="menu">
+      <li><a href="{% url 'panel_admin_sistema' %}">Dashboard</a></li>
+      <li><a href="{% url 'panel_admin_sistema' %}">Panel General</a></li>
+      <li><a href="#">Administrar usuario</a></li>
+      <li><a href="#">Consultar incidencia</a></li>
+      <li><a href="#">Reportes</a></li>
+      <li><a href="{% url 'logout' %}">Cerrar sesión</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main -->
+  <section class="main">
+    <div class="title-strip">Sistema de control de incidencias</div>
+    <p class="hello">Administrador del sistema — Bienvenido {{ usuario_nombre }}</p>
+
+    <!-- Botones -->
+    <div class="actions-bar">
+      <button class="btn btn-add" type="button">Agregar</button>
+      <button class="btn btn-edit" type="button">Editar</button>
+      <button class="btn btn-sync" type="button">Actualizar</button>
+      <button class="btn btn-del" type="button">Eliminar</button>
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:160px">Fecha Ingreso</th>
+              <th>Nombre y Apellido</th>
+              <th style="width:160px">Usuario</th>
+              <th style="width:160px">Rol</th>
+              <th style="width:160px">Terminal</th>
+              <th style="width:120px; text-align:center;">Activo</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in usuarios %}
+              <tr>
+                <td>{{ u.fecha_ingreso|date:"d-m-y" }}</td>
+                <td>{{ u.nombre }}</td>
+                <td>{{ u.usuario_login }}</td>
+                <td>{{ u.rol }}</td>
+                <td>
+                  {# admite string o FK con nombre #}
+                  {% if u.terminal.nombre %}{{ u.terminal.nombre }}{% else %}{{ u.terminal }}{% endif %}
+                </td>
+                <td style="text-align:center;">
+                  {% if u.activo %}
+                    <span class="tag-on">Sí</span>
+                  {% else %}
+                    <span class="tag-off">No</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% empty %}
+              <tr><td colspan="6" style="text-align:center; color:#6b7280;">No hay usuarios</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {# Paginación opcional si envías page_obj #}
+    {% if page_obj %}
+      <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-top:10px;">
+        {% if page_obj.has_previous %}
+          <a href="?page=1">&laquo; Primero</a>
+          <a href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+        {% endif %}
+        <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+        {% if page_obj.has_next %}
+          <a href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+          <a href="?page={{ page_obj.paginator.num_pages }}">Último &raquo;</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

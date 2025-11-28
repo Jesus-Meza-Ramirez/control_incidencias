@@ -1,0 +1,442 @@
+{% extends "base_panel.html" %}
+{% block title %}Panel | Control Interno{% endblock %}
+
+
+{% block head_css %}
+<style>
+
+  html, body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden; /* Evita el scroll global */
+}
+
+.table-wrap {
+  max-height: 70vh; /* Ajusta el alto visible de la tabla */
+  overflow-y: auto; /* Scroll solo en la tabla */
+  overflow-x: auto; /* Por si la tabla se desborda horizontalmente */
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+}
+  /* Hace que la página use todo el viewport */
+  html, body { height: 100%; margin: 0; }
+  body { background: #0f1e25; }
+
+  /* ⚠️ Si tu base.html tiene un contenedor con max-width, neutralízalo aquí */
+  .page, .container, .wrapper {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* ====== LAYOUT DE PANTALLA COMPLETA ====== */
+  .layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;   /* sidebar | contenido */
+    gap: 0;                             /* sin separación lateral */
+    width: 100vw;                       /* todo el ancho del viewport */
+    min-height: 100vh;                  /* toda la altura visible */
+    margin: 0;
+
+    /* Truco para “escapar” cualquier contenedor centrado del base.html */
+    margin-left: calc(50% - 50vw);
+  }
+
+  /* ====== SIDEBAR ====== */
+  .sidebar {
+    background: #1b7f6b;
+    color: #fff;
+    padding: 20px 0;
+    border-radius: 0;
+  }
+  .brand { font-weight: 800; text-align: center; margin: 6px 0 12px; letter-spacing: .5px; }
+  .menu { list-style: none; margin: 0; padding: 6px 0; }
+  .menu a {
+    display: block;
+    padding: 12px 18px;
+    color: #eafaf6;
+    text-decoration: none;
+    font-size: 15px;
+    border-radius: 8px;
+    margin: 2px 8px;
+  }
+  .menu a:hover { background: #166b5a; }
+
+  /* ====== CONTENIDO ====== */
+  .main {
+    background: #ffffff;
+    padding: 24px 32px;      /* puedes ajustar */
+    border-radius: 0;        /* sin bordes curvos para “full-bleed” */
+    box-shadow: none;
+    overflow: auto;
+  }
+
+  .page-title {
+    background: #2a9c86;
+    color: #fff;
+    font-weight: 800;
+    padding: 14px 18px;
+    border-radius: 8px;
+    text-align: center;
+    margin-bottom: 18px;
+  }
+  .hello { margin: 8px 0 16px; color: #374151; }
+
+  .table-wrap { background:#f9fafb; border-radius:12px; padding:14px; overflow:auto; }
+  table { width:100%; border-collapse:collapse; background:#fff; }
+  th, td { padding:12px 10px; border-bottom:1px solid #e5e7eb; font-size:14px; }
+  th { background:#e6f3f0; color:#0f5132; text-align:left; }
+  .badge { padding:4px 8px; border-radius:12px; font-size:12px; }
+  .badge.ok { background:#e8f7ee; color:#1e7d3f; }
+  .badge.warn { background:#fff3cd; color:#7a5d00; }
+
+  /* ====== RESPONSIVE ====== */
+  @media (max-width: 1024px) {
+    .layout { grid-template-columns: 200px 1fr; }
+  }
+  @media (max-width: 768px) {
+    .layout { grid-template-columns: 1fr; }
+    .sidebar { position: static; width: 100%; }
+  }
+
+  .tooltip-container {
+    position: relative;
+    cursor: pointer;
+}
+
+.motivo-preview {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 240px; /* ancho de la celda */
+    display: inline-block;
+}
+
+.tooltip-box {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 999;
+    background: #ffffff;
+    padding: 10px 12px;
+    max-width: 320px;
+    border-radius: 6px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    border: 1px solid #ddd;
+    white-space: normal;
+}
+
+.tooltip-container:hover .tooltip-box {
+    display: block;
+}
+
+</style>
+
+<div class="layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">JAKSA</div>
+    <ul class="menu">
+      <li><a href="{% url 'panel_control_interno' %}">Dashboard</a></li>
+      <!-- <li><a href="#">Registrar incidencia</a></li> -->
+
+      <li><a href="#" id="btnAbrirIncidencia">Registrar incidencia</a></li>
+
+
+
+
+      <li><a href="#">Consultar incidencia</a></li>
+      <li><a href="#">Reportes</a></li>
+      <li><a href="{% url 'logout' %}">Cerrar sesión</a></li>
+    </ul>
+  </aside>
+
+  <!-- Main content -->
+  <section class="main">
+    <div class="page-title">Sistema de control de incidencias</div>
+    <p class="hello">Bienvenido {{ usuario_nombre }} — Terminal: <strong>{{ terminal_actual }}</strong></p>
+
+    <!-- Filtro por fecha de revisión -->
+  <form method="get" style="margin: 0 0 12px 0; display:flex; gap:8px; align-items:center;">
+    <label>Desde
+      <input type="date" name="rev_desde" value="{{ rev_desde }}">
+    </label>
+    <label>Hasta
+      <input type="date" name="rev_hasta" value="{{ rev_hasta }}">
+    </label>
+    <button type="submit">Filtrar</button>
+    <a href="{% url 'panel_control_interno' %}">Limpiar</a>
+  </form>
+
+
+    
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha de incidencia</th>
+            <th>Nombre</th>
+            <th>Usuario</th>
+            <th>Cargo</th>
+            <th>Terminal</th>
+            <th>Control interno</th>
+            <th>Estado</th>
+            <th>Motivo</th>
+            <th>Fecha de revisión</th>
+            <th>Evidencia</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+            <tr>
+              <td>{{ r.fecha|date:"d-m-y" }}</td>
+              <td>{{ r.nombre }}</td>
+              <td>{{ r.usuario }}</td>
+              <td>{{ r.cargo }}</td>
+              <td>{{ r.terminal }}</td>
+              <td>{{ r.control_interno }}</td>
+              <td>
+                {% if r.estado == "Conforme" %}
+                  <span class="badge ok">Conforme</span>
+                {% else %}
+                  <span class="badge warn">Observación</span>
+                {% endif %}
+              </td>
+              <td class="tooltip-container"><span class="motivo-preview">{{ r.motivo|truncatechars:30 }}</span>
+              <div class="tooltip-box">{{ r.motivo }}</div></td>
+
+              <td>{{ r.fecha_revision|date:"d-m-Y" }}</td> 
+              
+              <td class="actions">
+                {% if r.evidencia %}
+                  <a href="{{ r.evidencia }}"
+                    class="evidence-link"
+                    data-url="{{ r.evidencia }}"
+                    target="_blank"
+                    rel="noopener noreferrer">
+                  Ver
+                  </a>
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+
+            </tr>
+          {% empty %}
+            <tr><td colspan="7" style="text-align:center; color:#6b7280;">No hay incidencias</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+          <!-- Paginación -->
+{% if page_obj %}
+  <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-top:10px;">
+    {% if page_obj.has_previous %}
+      <a href="?page=1{{ preserved }}">&laquo; Primero</a>
+      <a href="?page={{ page_obj.previous_page_number }}{{ preserved }}">Anterior</a>
+    {% endif %}
+
+    <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{{ preserved }}">Siguiente</a>
+      <a href="?page={{ page_obj.paginator.num_pages }}{{ preserved }}">Último &raquo;</a>
+    {% endif %}
+  </div>
+{% endif %}
+    </div>
+
+
+
+
+  </section>
+</div>
+{% endblock %}
+
+
+
+
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+
+    // --- abrir / cerrar modal ---
+    const abrir = document.getElementById("btnAbrirIncidencia");
+    const cerrar = document.getElementById("cerrarModal");
+    const modal  = document.getElementById("modalIncidencia");
+
+    if (abrir && modal) {
+        abrir.addEventListener("click", function (e) {
+            e.preventDefault();
+            // reseteamos el formulario cada vez que se abre
+            const form = modal.querySelector("form");
+            if (form) form.reset();
+            modal.style.display = "block";
+        });
+    }
+
+    if (cerrar && modal) {
+        cerrar.addEventListener("click", function () {
+            modal.style.display = "none";
+        });
+    }
+
+    // --- filtro Terminal -> Boletero/Cajero ---
+    const selTerminal = document.getElementById("terminalSelect");
+    const selBoletero = document.getElementById("boleteroSelect");
+
+    if (selTerminal && selBoletero) {
+
+        // guardamos TODAS las opciones originales (excepto el placeholder)
+        const allBoleteros = Array.from(
+            selBoletero.querySelectorAll("option[data-terminal]")
+        );
+
+        selTerminal.addEventListener("change", function () {
+            const terminalSeleccionada = this.value;
+
+            // limpiamos el combo de boletero, dejando solo el placeholder
+            selBoletero.querySelectorAll("option[data-terminal]").forEach(function (opt) {
+                opt.remove();
+            });
+
+            // volvemos a agregar solo los boleteros de esa terminal
+            allBoleteros.forEach(function (opt) {
+                if (terminalSeleccionada === "" || opt.dataset.terminal === terminalSeleccionada) {
+                    selBoletero.appendChild(opt);
+                }
+            });
+
+            // reseteamos selección
+            selBoletero.value = "";
+        });
+    }
+});
+</script>
+
+<!-- MODAL PARA REGISTRAR INCIDENCIA -->
+<div id="modalIncidencia"
+     style="
+        display:none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(2px);
+        z-index: 9999;
+        padding-top: 80px;
+     ">
+
+  <div style="
+      background: white;
+      width: 480px;
+      max-width: 95%;
+      margin: auto;
+      padding: 24px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      position: relative;
+      font-size: 14px;
+  ">
+    
+    <h2 style="margin-top:0; color:#1b7f6b; font-size:22px;">Registrar incidencia</h2>
+
+    <span id="cerrarModal"
+          style="
+            position:absolute;
+            top:10px; right:12px;
+            cursor:pointer;
+            font-weight:bold;
+            color:#444;
+            font-size:18px;
+          ">
+      ✖
+    </span>
+
+    <form method="post" action="{% url 'registrar_incidencia' %}" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <!-- 1. Selección de terminal -->
+      <label for="terminalSelect">Terminal:</label>
+      <select id="terminalSelect"
+              name="id_terminal"
+              required
+              style="width:100%; margin-bottom:10px;">
+        <option value="">-- Seleccione terminal --</option>
+        {% for t in terminales %}
+          <option value="{{ t.id_terminal }}">{{ t.nombre_terminal }}</option>
+        {% endfor %}
+      </select>
+
+      <!-- 2. Boletero/Cajero filtrado por terminal -->
+      <label for="boleteroSelect">Boletero / Cajero (usuario):</label>
+      <select id="boleteroSelect"
+              name="id_bc"
+              required
+              style="width:100%; margin-bottom:10px;">
+        <option value="">-- Seleccione --</option>
+        {% for b in boleteros %}
+          {# usamos el USUARIO como texto y guardamos su terminal en data-terminal #}
+          <option value="{{ b.id_bc }}"
+                  data-terminal="{{ b.id_terminal_id }}">
+            {{ b.usuario }}
+          </option>
+        {% endfor %}
+      </select>
+
+      <!-- fecha de incidencia -->
+      <label for="fechaIncidencia">Fecha de incidencia:</label>
+      <input type="date"
+             id="fechaIncidencia"
+             name="fecha_incidencia"
+             required
+             style="width:100%; margin-bottom:10px;">
+
+      <label>Motivo:</label>
+      <textarea name="motivo"
+                
+                style="width:100%; height:100px; margin-bottom:10px;"></textarea>
+
+      <label>Estado:</label>
+      <select name="estado"
+              
+              style="width:100%; margin-bottom:10px;">
+        <option value="Conforme">Conforme</option>
+        <option value="Observación">Observación</option>
+      </select>
+
+      <label>Evidencia (imagen / archivo):</label>
+      <input type="file"
+             name="evidencia"
+             style="width:100%; margin-bottom:15px;">
+
+      <button type="submit"
+              style="
+                margin-top:5px;
+                width:100%;
+                padding:10px;
+                background:#1b7f6b;
+                color:white;
+                border:none;
+                border-radius:6px;
+                cursor:pointer;
+                font-weight:600;
+              ">
+        Guardar incidencia
+      </button>
+
+    </form>
+
+  </div>
+</div>
+{% endblock %}
+
+
+
+
+
+
