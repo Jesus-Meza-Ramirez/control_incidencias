@@ -1,0 +1,234 @@
+{% extends "base_panel.html" %}
+{% block title %}Consultar incidencias{% endblock %}
+
+{% block head_css %}
+<style>
+
+  /* ---------------- LAYOUT GENERAL (igual que tu panel) ---------------- */
+  html, body { height: 100%; margin: 0; overflow: hidden; }
+  body { background: #0f1e25; }
+  .page, .container, .wrapper {
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    width: 100vw;
+    min-height: 100vh;
+    margin-left: calc(50% - 50vw);
+  }
+
+  /* ---------------- SIDEBAR ---------------- */
+  .sidebar {
+    background: #1b7f6b;
+    color: #fff;
+    padding: 20px 0;
+  }
+  .brand { font-weight: 800; text-align: center; margin-bottom: 12px; }
+  .menu { list-style: none; padding: 0; }
+  .menu a {
+    display: block;
+    padding: 12px 18px;
+    color: #eafaf6;
+    text-decoration: none;
+    margin: 2px 8px;
+    border-radius: 8px;
+  }
+  .menu a:hover { background: #166b5a; }
+
+  /* ---------------- CONTENIDO ---------------- */
+  .main {
+    background: #ffffff;
+    padding: 24px 32px;
+    overflow: auto;
+  }
+
+  .page-title {
+    background: #2a9c86;
+    color: #fff;
+    padding: 14px;
+    font-weight: 800;
+    border-radius: 8px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  /* ---------------- FILTROS ---------------- */
+  .filtros-box {
+    background: #f1f5f9;
+    padding: 16px;
+    border-radius: 10px;
+    margin-bottom: 18px;
+  }
+  .filtros-box label { font-weight: bold; }
+  .filtros-box input, .filtros-box select {
+    width: 100%;
+    padding: 6px;
+  }
+
+  .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 12px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 12px; }
+
+  /* ---------------- TABLA ---------------- */
+  .table-wrap {
+    max-height: 70vh;
+    overflow: auto;
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 14px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  }
+
+  table { width: 100%; border-collapse: collapse; }
+  th, td { padding: 12px; border-bottom: 1px solid #e5e7eb; }
+  th {
+    background: #e6f3f0;
+    color: #0f5132;
+    font-weight: bold;
+  }
+
+  .badge.ok { background: #e8f7ee; color:#1e7d3f; padding: 4px 8px; border-radius: 12px; }
+  .badge.warn { background:#fff3cd; color:#7a5d00; padding:4px 8px; border-radius:12px; }
+
+</style>
+{% endblock %}
+
+
+{% block content %}
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="brand">JAKSA</div>
+    <ul class="menu">
+      <li><a href="{% url 'panel_control_interno' %}">Dashboard</a></li>
+      <li><a href="#" id="btnAbrirIncidencia">Registrar incidencia</a></li>
+      <li><a href="{% url 'consultar_incidencias' %}" style="background:#166b5a;">Consultar incidencia</a></li>
+      <li><a href="#">Reportes</a></li>
+      <li><a href="{% url 'logout' %}">Cerrar sesión</a></li>
+    </ul>
+  </aside>
+
+  <!-- CONTENIDO -->
+  <section class="main">
+
+    <div class="page-title">Consulta de incidencias</div>
+
+    <!-- FILTROS -->
+    <form method="get" class="filtros-box">
+      <div class="grid-4">
+        <div>
+          <label>Fecha desde</label>
+          <input type="date" name="f1" value="{{ f1 }}">
+        </div>
+
+        <div>
+          <label>Fecha hasta</label>
+          <input type="date" name="f2" value="{{ f2 }}">
+        </div>
+
+        <div>
+          <label>Terminal</label>
+          <select name="terminal">
+            <option value="">Todos</option>
+            {% for t in terminales %}
+            <option value="{{ t.id_terminal }}" {% if terminal_selected == t.id_terminal|stringformat:'s' %}selected{% endif %}>
+              {{ t.nombre_terminal }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div>
+          <label>Estado</label>
+          <select name="estado">
+            <option value="">Todos</option>
+            <option value="Conforme" {% if estado == 'Conforme' %}selected{% endif %}>Conforme</option>
+            <option value="Observación" {% if estado == 'Observación' %}selected{% endif %}>Observación</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="grid-3" style="margin-top:12px;">
+        <div>
+          <label>Usuario</label>
+          <input type="text" name="usuario" value="{{ usuario }}">
+        </div>
+
+        <div>
+          <label>Control interno</label>
+          <input type="text" name="ci" value="{{ ci }}">
+        </div>
+
+        <div>
+          <label>Motivo</label>
+          <input type="text" name="motivo" value="{{ motivo }}">
+        </div>
+      </div>
+
+      <div style="margin-top: 14px;">
+        <button type="submit">🔍 Filtrar</button>
+        <a href="{% url 'consultar_incidencias' %}">Limpiar</a>
+      </div>
+    </form>
+
+    <!-- TABLA -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th>Nombre</th>
+            <th>Usuario</th>
+            <th>Terminal</th>
+            <th>Estado</th>
+            <th>Motivo</th>
+            <th>CI</th>
+            <th>Evidencia</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td>{{ r.fecha|date:"d-m-Y" }}</td>
+            <td>{{ r.nombre }}</td>
+            <td>{{ r.usuario }}</td>
+            <td>{{ r.terminal }}</td>
+
+            <td>
+              {% if r.estado == "Conforme" %}
+                <span class="badge ok">Conforme</span>
+              {% else %}
+                <span class="badge warn">Observación</span>
+              {% endif %}
+            </td>
+
+            <td>{{ r.motivo }}</td>
+            <td>{{ r.control_interno }}</td>
+
+            <td>
+              {% if r.evidencia %}
+                <a href="{{ r.evidencia }}" target="_blank">Ver</a>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="8" style="text-align:center; color:#6b7280;">No se encontraron incidencias…</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+  </section>
+</div>
+
+{% endblock %}

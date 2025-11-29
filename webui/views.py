@@ -440,3 +440,85 @@ def panel_admin_sistema(request):
 
 
 
+
+
+
+
+def consultar_incidencias(request):
+    maybe_redirect = _require_session(request)
+    if maybe_redirect:
+        return maybe_redirect
+
+    qs = Incidencia.objects.select_related("id_bc", "id_bc__id_terminal", "id_usuario")
+
+    # ----- Captura de filtros -----
+    f1 = request.GET.get("f1")
+    f2 = request.GET.get("f2")
+    terminal = request.GET.get("terminal")
+    estado = request.GET.get("estado")
+    usuario = request.GET.get("usuario")
+    motivo = request.GET.get("motivo")
+    ci = request.GET.get("ci")
+
+    # ----- Aplicar filtros -----
+    if f1 and f2:
+        qs = qs.filter(fecha_incidencia__range=[f1, f2])
+
+    if terminal:
+        qs = qs.filter(id_bc__id_terminal_id=terminal)
+
+    if estado:
+        qs = qs.filter(estado__iexact=estado)
+
+    if usuario:
+        qs = qs.filter(
+            Q(id_bc__nombre__icontains=usuario) |
+            Q(id_bc__usuario__icontains=usuario)
+        )
+
+    if motivo:
+        qs = qs.filter(motivo__icontains=motivo)
+
+    if ci:
+        qs = qs.filter(id_usuario__nombre__icontains=ci)
+
+    # ----- Formatear filas -----
+    rows = []
+    for inc in qs.order_by("-fecha_incidencia"):
+        rows.append({
+            "fecha": inc.fecha_incidencia,
+            "nombre": inc.id_bc.nombre,
+            "usuario": inc.id_bc.usuario,
+            "terminal": inc.id_bc.id_terminal.nombre_terminal,
+            "estado": inc.estado,
+            "motivo": inc.motivo,
+            "evidencia": inc.evidencia.url if inc.evidencia else "",
+            "control_interno": inc.id_usuario.nombre,
+        })
+
+    return render(request, "consultar_incidencias.html", {
+        "rows": rows,
+        "terminales": Terminal.objects.all(),
+
+        # valores enviados al template
+        "f1": f1 or "",
+        "f2": f2 or "",
+        "terminal_selected": terminal or "",
+        "estado": estado or "",
+        "usuario": usuario or "",
+        "motivo": motivo or "",
+        "ci": ci or "",
+    })
+
+    return render(request, "consultar_incidencias.html")
+
+
+
+
+
+
+
+
+
+
+

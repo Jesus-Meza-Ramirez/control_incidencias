@@ -5,7 +5,8 @@ from django.conf import settings
 from django.conf.urls.static import static
 from webui.views import (
     login_view, logout_view, dashboard_redirect,
-    panel_control_interno, panel_admin_terminal, panel_admin_sistema
+    panel_control_interno, panel_admin_terminal, panel_admin_sistema,
+    consultar_incidencias
 )
 
 urlpatterns = [
@@ -22,6 +23,10 @@ urlpatterns = [
     path('panel/admin-sistema/', panel_admin_sistema, name='panel_admin_sistema'),
 
     path("incidencias/", include("incidencias.urls")),
+
+
+    path("panel/consultar-incidencias/", consultar_incidencias, name="consultar_incidencias"),
+
 
 
 ]
