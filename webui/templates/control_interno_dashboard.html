@@ -12,14 +12,17 @@
 }
 
 .table-wrap {
-  max-height: 70vh; /* Ajusta el alto visible de la tabla */
-  overflow-y: auto; /* Scroll solo en la tabla */
-  overflow-x: auto; /* Por si la tabla se desborda horizontalmente */
-  background: #fff;
-  border-radius: 8px;
-  padding: 8px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: auto;
+    background: #fff;
+    padding: 10px;
+    border-radius: 8px;
+
+    /* Para que el scroll quede bien */
+    max-height: none;
 }
+
   /* Hace que la página use todo el viewport */
   html, body { height: 100%; margin: 0; }
   body { background: #0f1e25; }
@@ -66,12 +69,20 @@
 
   /* ====== CONTENIDO ====== */
   .main {
-    background: #ffffff;
-    padding: 24px 32px;      /* puedes ajustar */
-    border-radius: 0;        /* sin bordes curvos para “full-bleed” */
-    box-shadow: none;
-    overflow: auto;
+      background: #ffffff;
+      padding: 24px 32px;
+      border-radius: 0;
+      box-shadow: none;
+
+      /* 🔹 La página NO scrollea
+        🔹 La tabla sí scrollea
+        🔹 La paginación es visible */
+      overflow: visible;
+      height: calc(100vh - 20px);
+      display: flex;
+      flex-direction: column;
   }
+
 
   .page-title {
     background: #2a9c86;
@@ -133,6 +144,72 @@
     display: block;
 }
 
+/* Caja principal */
+.filtros-box {
+    background: #f8fafc;
+    padding: 16px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    border: 1px solid #e2e8f0;
+}
+
+/* Títulos de sección */
+.grupo-titulo {
+    font-weight: 700;
+    padding: 6px 12px;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    font-size: 14px;
+}
+.grupo-titulo.azul { background: #e8f0fe; color:#1e3a8a; }
+.grupo-titulo.verde { background: #e7f8ed; color:#166534; }
+.grupo-titulo.gris { background: #f1f5f9; color:#334155; }
+
+/* Grids */
+.grupo-grid {
+    display: grid;
+    grid-template-columns: repeat(2,1fr);
+    gap: 12px;
+}
+.grupo-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3,1fr);
+    gap: 12px;
+}
+
+/* Inputs compactos */
+.filtros-box input,
+.filtros-box select {
+    width: 100%;
+    padding: 6px 8px;
+    font-size: 14px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+}
+
+/* Botones */
+.acciones {
+    margin-top: 12px;
+}
+
+.btn-filtrar {
+    background: #1b7f6b;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+}
+.btn-filtrar:hover { background:#145c50; }
+
+.btn-limpiar {
+    margin-left: 12px;
+    color:#334155;
+    font-size: 14px;
+}
+
+
 </style>
 
 <div class="layout">
@@ -148,7 +225,7 @@
 
 
 
-      <li><a href="#">Consultar incidencia</a></li>
+      
       <li><a href="#">Reportes</a></li>
       <li><a href="{% url 'logout' %}">Cerrar sesión</a></li>
     </ul>
@@ -160,157 +237,218 @@
     <p class="hello">Bienvenido {{ usuario_nombre }} — Terminal: <strong>{{ terminal_actual }}</strong></p>
 
     <!-- Filtro por fecha de revisión -->
- <!-- === FILTROS DE BUSQUEDA === -->
-  <form method="get"
-        style="
-          background:#f1f5f9;
-          padding:16px;
-          border-radius:8px;
-          margin-bottom:18px;
-        ">
+    <!-- === FILTROS DE BUSQUEDA === -->
+    <form method="get"
+          style="background:#f1f5f9; padding:16px; border-radius:8px; margin-bottom:18px;">
 
-      <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:12px;">
-          <div>
-              <label>Fecha desde</label>
-              <input type="date" name="f1" value="{{ f1 }}" style="width:100%;">
-          </div>
+        <h3 style="margin:0 0 14px 0; color:#1b7f6b;">Filtros avanzados</h3>
 
-          <div>
-              <label>Fecha hasta</label>
-              <input type="date" name="f2" value="{{ f2 }}" style="width:100%;">
-          </div>
+        <!-- GRID PRINCIPAL 2 COLUMNAS -->
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:18px;">
 
-          <div>
-              <label>Terminal</label>
-              <select name="terminal" style="width:100%;">
-                  <option value="">Todos</option>
-                  {% for t in terminales %}
-                      <option value="{{ t.id_terminal }}"
-                          {% if terminal_selected == t.id_terminal|stringformat:'s' %}selected{% endif %}>
-                          {{ t.nombre_terminal }}
-                      </option>
-                  {% endfor %}
-              </select>
-          </div>
+            <!-- === BLOQUE 1: FECHA INCIDENCIA === -->
+            <div style="background:#e8f2ff; padding:14px; border-radius:8px;">
+                <h4 style="margin:0 0 10px; color:#0057a3; font-size:15px;">
+                    📅 Fechas de incidencia
+                </h4>
 
-          <div>
-              <label>Estado</label>
-              <select name="estado" style="width:100%;">
-                  <option value="">Todos</option>
-                  <option value="Conforme" {% if estado == "Conforme" %}selected{% endif %}>Conforme</option>
-                  <option value="Observado" {% if estado == "Observado" %}selected{% endif %}>Observado</option>
-              </select>
-          </div>
-      </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div>
+                        <label>Desde</label>
+                        <input type="date" name="f1" value="{{ f1 }}"
+                              style="width:100%; padding:6px;">
+                    </div>
 
-      <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:12px; margin-top:12px;">
-          <div>
-              <label>Usuario (boletero/cajero)</label>
-              <input type="text" name="usuario" value="{{ usuario }}" placeholder="Nombre o usuario…" style="width:100%;">
-          </div>
+                    <div>
+                        <label>Hasta</label>
+                        <input type="date" name="f2" value="{{ f2 }}"
+                              style="width:100%; padding:6px;">
+                    </div>
+                </div>
+            </div>
 
-          <div>
-              <label>Control interno</label>
-              <input type="text" name="ci" value="{{ ci }}" placeholder="Nombre…" style="width:100%;">
-          </div>
+            <!-- === BLOQUE 2: FECHA REVISION === -->
+            <div style="background:#e8ffeb; padding:14px; border-radius:8px;">
+                <h4 style="margin:0 0 10px; color:#0d6b28; font-size:15px;">
+                    📋 Fechas de revisión
+                </h4>
 
-          <div>
-              <label>Motivo contiene</label>
-              <input type="text" name="motivo" value="{{ motivo }}" placeholder="Buscar texto…" style="width:100%;">
-          </div>
-      </div>
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+                    <div>
+                        <label>Desde</label>
+                        <input type="date" name="r1" value="{{ r1 }}"
+                              style="width:100%; padding:6px;">
+                    </div>
 
-      <div style="margin-top:14px;">
-          <button type="submit"
-                  style="padding:8px 14px; background:#1b7f6b; color:white; border:none; border-radius:6px; cursor:pointer;">
-              🔍 Filtrar
-          </button>
+                    <div>
+                        <label>Hasta</label>
+                        <input type="date" name="r2" value="{{ r2 }}"
+                              style="width:100%; padding:6px;">
+                    </div>
+                </div>
+            </div>
 
-          <a href="{% url 'panel_control_interno' %}" style="margin-left:12px;">Limpiar</a>
-      </div>
+        </div>
 
-  </form>
+        <!-- === BLOQUE 3: OTROS FILTROS === -->
+        <div style="background:white; padding:16px; margin-top:16px; border-radius:8px;">
+
+            <h4 style="margin:0 0 10px; color:#333;">🔎 Otros filtros</h4>
+
+            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:12px;">
+                
+                <div>
+                    <label>Terminal</label>
+                    <select name="terminal" id="filtroTerminal" style="width:100%; padding:6px;">
+                        <option value="">Todos</option>
+                        {% for t in terminales %}
+                            <option value="{{ t.id_terminal }}"
+                                {% if terminal_selected == t.id_terminal|stringformat:'s' %}selected{% endif %}>
+                                {{ t.nombre_terminal }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label>Estado</label>
+                    <select name="estado" style="width:100%; padding:6px;">
+                        <option value="">Todos</option>
+                        <option value="Conforme" {% if estado == "Conforme" %}selected{% endif %}>Conforme</option>
+                        <option value="Observado" {% if estado == "Observado" %}selected{% endif %}>Observado</option>
+                    </select>
+                </div>
+
+              <div>
+                  <label>Usuario </label>
+                  <select name="usuario" id="filtroUsuario" style="width:100%; padding:6px;">
+                      <option value="">Todos</option>
+                      {% for b in boleteros %}
+                          <option value="{{ b.usuario }}"
+                              data-terminal="{{ b.id_terminal_id }}"
+                              {% if usuario == b.usuario %}selected{% endif %}>
+                              {{ b.usuario }}
+                          </option>
+                      {% endfor %}
+                  </select>
+              </div>
+
+                <div>
+                    <label>Control interno</label>
+                    <select name="ci" style="width:100%; padding:6px;"><option value="">Todos</option>
+                      {% for u in usuarios_ci %}
+                          <option value="{{ u.usuario_login }}" 
+                              {% if ci == u.usuario_login %}selected{% endif %}>
+                              {{ u.usuario_login }}
+                          </option>
+                      {% endfor %}
+                   </select>
+
+                </div>
+            </div>
+
+            <div style="margin-top:12px;">
+                <button type="submit"
+                    style="padding:8px 14px; background:#1b7f6b; color:white; border:none; border-radius:6px; cursor:pointer;">
+                    🔍 Filtrar
+                </button>
+
+                <a href="{% url 'panel_control_interno' %}" style="margin-left:12px;">Limpiar</a>
+            </div>
+        </div>
+
+    </form>
+
+
+
+
 
 
 
     
 
     <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>Fecha de incidencia</th>
-            <th>Nombre</th>
-            <th>Usuario</th>
-            <th>Cargo</th>
-            <th>Terminal</th>
-            <th>Control interno</th>
-            <th>Estado</th>
-            <th>Motivo</th>
-            <th>Fecha de revisión</th>
-            <th>Evidencia</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for r in rows %}
-            <tr>
-              <td>{{ r.fecha|date:"d-m-y" }}</td>
-              <td>{{ r.nombre }}</td>
-              <td>{{ r.usuario }}</td>
-              <td>{{ r.cargo }}</td>
-              <td>{{ r.terminal }}</td>
-              <td>{{ r.control_interno }}</td>
-              <td>
-                {% if r.estado == "Conforme" %}
-                  <span class="badge ok">Conforme</span>
-                {% else %}
-                  <span class="badge warn">Observado</span>
-                {% endif %}
-              </td>
-              <td class="tooltip-container"><span class="motivo-preview">{{ r.motivo|truncatechars:30 }}</span>
-              <div class="tooltip-box">{{ r.motivo }}</div></td>
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha de incidencia</th>
+                    <th>Nombre</th>
+                    <th>Usuario</th>
+                    <th>Cargo</th>
+                    <th>Terminal</th>
+                    <th>Control interno</th>
+                    <th>Estado</th>
+                    <th>Motivo</th>
+                    <th>Fecha de revisión</th>
+                    <th>Evidencia</th>
+                </tr>
+            </thead>
 
-              <td>{{ r.fecha_revision|date:"d-m-Y" }}</td> 
-              
-              <td class="actions">
-                {% if r.evidencia %}
-                  <a href="{{ r.evidencia }}"
-                    class="evidence-link"
-                    data-url="{{ r.evidencia }}"
-                    target="_blank"
-                    rel="noopener noreferrer">
-                  Ver
-                  </a>
-                {% else %}
-                  —
-                {% endif %}
-              </td>
+            <tbody>
+                {% for r in rows %}
+                <tr>
+                    <td>{{ r.fecha|date:"d-m-y" }}</td>
+                    <td>{{ r.nombre }}</td>
+                    <td>{{ r.usuario }}</td>
+                    <td>{{ r.cargo }}</td>
+                    <td>{{ r.terminal }}</td>
+                    <td>{{ r.control_interno }}</td>
 
-            </tr>
-          {% empty %}
-            <tr><td colspan="7" style="text-align:center; color:#6b7280;">No hay incidencias</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
-          <!-- Paginación -->
-{% if page_obj %}
-  <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-top:10px;">
-    {% if page_obj.has_previous %}
-      <a href="?page=1{{ preserved }}">&laquo; Primero</a>
-      <a href="?page={{ page_obj.previous_page_number }}{{ preserved }}">Anterior</a>
-    {% endif %}
+                    <td>
+                        {% if r.estado == "Conforme" %}
+                            <span class="badge ok">Conforme</span>
+                        {% else %}
+                            <span class="badge warn">Observado</span>
+                        {% endif %}
+                    </td>
 
-    <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+                    <td class="tooltip-container">
+                        <span class="motivo-preview">{{ r.motivo|truncatechars:30 }}</span>
+                        <div class="tooltip-box">{{ r.motivo }}</div>
+                    </td>
 
-    {% if page_obj.has_next %}
-      <a href="?page={{ page_obj.next_page_number }}{{ preserved }}">Siguiente</a>
-      <a href="?page={{ page_obj.paginator.num_pages }}{{ preserved }}">Último &raquo;</a>
-    {% endif %}
-  </div>
-{% endif %}
+                    <td>{{ r.fecha_revision|date:"d-m-Y" }}</td> 
+                    
+                    <td>
+                        {% if r.evidencia %}
+                            <a href="{{ r.evidencia }}" target="_blank">Ver</a>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="10" style="text-align:center; color:#6b7280;">
+                        No hay incidencias
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>  <!-- ← Cierre del SCROLL -->
+
+    <!-- PAGINACIÓN FUERA DEL SCROLL -->
+    {% if page_obj %}
+    <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-top:10px;">
+        
+        {% if page_obj.has_previous %}
+            <a href="?page=1{{ preserved }}">&laquo; Primero</a>
+            <a href="?page={{ page_obj.previous_page_number }}{{ preserved }}">Anterior</a>
+        {% endif %}
+
+        <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{{ preserved }}">Siguiente</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{{ preserved }}">Último &raquo;</a>
+        {% endif %}
+
     </div>
+    {% endif %}
 
 
+    
 
 
   </section>
@@ -378,6 +516,65 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 });
 </script>
+
+
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+    const selTerminal = document.getElementById("filtroTerminal");
+    const selUsuario  = document.getElementById("filtroUsuario");
+
+    // Guardamos todas las opciones originales de usuario
+    const allUsuarios = Array.from(selUsuario.querySelectorAll("option[data-terminal]"));
+
+    // --- FILTRAR USUARIOS SEGÚN TERMINAL ---
+    selTerminal.addEventListener("change", () => {
+        const term = selTerminal.value;
+        const selectedUser = selUsuario.value;  // conservar usuario seleccionado si coincide
+
+        // Limpiamos opciones actuales (salvo "Todos")
+        selUsuario.querySelectorAll("option[data-terminal]").forEach(op => op.remove());
+
+        // Agregamos solo los usuarios del terminal elegido
+        allUsuarios.forEach(op => {
+            if (term === "" || op.dataset.terminal === term) {
+                selUsuario.appendChild(op);
+            }
+        });
+
+        // Mantener selección si existía
+        if (selectedUser && selUsuario.querySelector(`option[value="${selectedUser}"]`)) {
+            selUsuario.value = selectedUser;
+        } else {
+            selUsuario.value = "";
+        }
+    });
+
+
+    // --- AUTOCOMPLETAR TERMINAL CUANDO SELECCIONO USUARIO ---
+    selUsuario.addEventListener("change", () => {
+
+        const selectedUser = selUsuario.value; // mantener selección
+        const userOpt = selUsuario.selectedOptions[0];
+
+        if (!userOpt || !userOpt.dataset.terminal) return;
+
+        const terminalId = userOpt.dataset.terminal;
+
+        // Autocompleta terminal
+        selTerminal.value = terminalId;
+
+        // Ahora filtramos usuarios según EL terminal asignado
+        selTerminal.dispatchEvent(new Event("change"));
+
+        // VOLVER a activar el usuario seleccionado
+        selUsuario.value = selectedUser;
+    });
+
+});
+</script>
+
 
 <!-- MODAL PARA REGISTRAR INCIDENCIA -->
 <div id="modalIncidencia"

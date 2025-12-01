@@ -86,29 +86,37 @@ def panel_control_interno(request):
     if maybe_redirect:
         return maybe_redirect
 
-    # ---- Parámetros GET para filtro de fechas (DateField) ----
-    # (antiguos: rev_desde / rev_hasta -- los dejamos para compatibilidad)
-    rev_desde = request.GET.get('rev_desde')  # 'YYYY-MM-DD'
-    rev_hasta = request.GET.get('rev_hasta')  # 'YYYY-MM-DD'
+    # ==========================
+    # 🔍 Filtros GET
+    # ==========================
 
-    # ---- Nuevos filtros avanzados desde el formulario ----
-    f1 = request.GET.get('f1')         # fecha incidencia desde
-    f2 = request.GET.get('f2')         # fecha incidencia hasta
-    terminal_filter = request.GET.get('terminal')
-    estado_filter = request.GET.get('estado')
-    usuario_filter = (request.GET.get('usuario') or '').strip()
-    motivo_filter = (request.GET.get('motivo') or '').strip()
-    ci_filter = (request.GET.get('ci') or '').strip()
+    # Fecha incidencia
+    f1 = request.GET.get("f1")   # desde
+    f2 = request.GET.get("f2")   # hasta
 
-    # ---- Query base (más recientes primero por fecha_revision) ----
+    # Fecha revisión
+    r1 = request.GET.get("r1")
+    r2 = request.GET.get("r2")
+
+    terminal_filter = request.GET.get("terminal")
+    estado_filter = request.GET.get("estado")
+    usuario_filter = (request.GET.get("usuario") or "").strip()
+    motivo_filter = (request.GET.get("motivo") or "").strip()
+    ci_filter = (request.GET.get("ci") or "").strip()
+
+    # ==========================
+    # Base Query
+    # ==========================
+
     qs = (
         Incidencia.objects
-        .select_related('id_bc', 'id_usuario', 'id_bc__id_terminal')
-        .order_by('-fecha_revision', '-id_incidencia')
+        .select_related("id_bc", "id_usuario", "id_bc__id_terminal")
+        .order_by("-fecha_revision", "-id_incidencia")
     )
 
-    # ---- Aplicar filtros avanzados (si vienen) ----
-    # Filtro por rango de fecha de incidencia (f1,f2)
+    # ==========================
+    # 🎯 Filtro FECHA INCIDENCIA
+    # ==========================
     if f1 and f2:
         try:
             d1 = date.fromisoformat(f1)
@@ -116,134 +124,157 @@ def panel_control_interno(request):
             if d1 > d2:
                 d1, d2 = d2, d1
             qs = qs.filter(fecha_incidencia__range=(d1, d2))
-        except ValueError:
+        except:
             pass
 
-    # Filtro por terminal (FK en id_bc.id_terminal_id)
+    # ==========================
+    # 🎯 Filtro FECHA REVISIÓN
+    # ==========================
+    if r1 and r2:
+        try:
+            d1 = date.fromisoformat(r1)
+            d2 = date.fromisoformat(r2)
+            if d1 > d2:
+                d1, d2 = d2, d1
+            qs = qs.filter(fecha_revision__range=(d1, d2))
+        except:
+            pass
+
+    # ==========================
+    # 🎯 Filtro Terminal
+    # ==========================
     if terminal_filter:
         qs = qs.filter(id_bc__id_terminal_id=terminal_filter)
 
-    # Filtro por estado (por ejemplo "Conforme" o "Observación")
+    # ==========================
+    # 🎯 Filtro Estado NORMALIZADO
+    # ==========================
     if estado_filter:
-        qs = qs.filter(estado__iexact=estado_filter)
+        estado_filter_norm = estado_filter.lower().replace("ó", "o")
 
-    # Filtro por usuario (boletero nombre o usuario)
+        if estado_filter_norm == "observado":
+            qs = qs.filter(
+                Q(estado__icontains="observ") |
+                Q(estado__icontains="obs")
+            )
+        elif estado_filter_norm == "conforme":
+            qs = qs.filter(estado__icontains="conforme")
+
+    # ==========================
+    # 🎯 Usuario boletero/cajero
+    # ==========================
     if usuario_filter:
         qs = qs.filter(
             Q(id_bc__nombre__icontains=usuario_filter) |
             Q(id_bc__usuario__icontains=usuario_filter)
         )
 
-    # Filtro por texto en motivo
-    if motivo_filter:
-        qs = qs.filter(motivo__icontains=motivo_filter)
+ 
 
-    # Filtro por control interno (nombre)
+    # ==========================
+    # 🎯 Control interno
+    # ==========================
     if ci_filter:
-        qs = qs.filter(id_usuario__nombre__icontains=ci_filter)
+        qs = qs.filter(id_usuario__usuario_login__icontains=ci_filter)
 
-    # ---- Si hay filtro viejo por fecha_revision (rev_desde/rev_hasta) lo aplicamos también ----
-    if rev_desde and rev_hasta:
-        try:
-            d1 = date.fromisoformat(rev_desde)
-            d2 = date.fromisoformat(rev_hasta)
-            if d1 > d2:
-                d1, d2 = d2, d1
-            qs = qs.filter(fecha_revision__range=(d1, d2))
-            qs = qs.filter(fecha_revision__isnull=False)
-        except ValueError:
-            pass
 
-    # ---- Cap de 5 páginas máx (20 por página => 100 registros) ----
+    # ==========================
+    #  LIMIT TOP 100
+    # ==========================
     qs = qs[:100]
 
-    # ---- Paginación (20 por página) ----
-    per_page = 20
-    paginator = Paginator(qs, per_page)
-    try:
-        page_num = int(request.GET.get('page', 1))
-    except ValueError:
-        page_num = 1
+    # ==========================
+    #  Paginación
+    # ==========================
+    paginator = Paginator(qs, 20)
+    page_num = request.GET.get("page", 1)
 
     try:
         page_obj = paginator.page(page_num)
-    except EmptyPage:
+    except:
         page_obj = paginator.page(1)
 
-    # ---- Construcción de filas para la tabla ----
+    # ==========================
+    #  Construcción de tabla rows
+    # ==========================
     rows = []
+
     for inc in page_obj.object_list:
-        # Fecha incidencia
-        fecha = getattr(inc, 'fecha_incidencia', None)
 
-        # Boletero/Cajero
-        bc = getattr(inc, 'id_bc', None)
-        bc_nombre = getattr(bc, 'nombre', '—')
-        bc_usuario = getattr(bc, 'usuario', '—')
-        bc_cargo   = getattr(bc, 'cargo', '—') if bc else '—'
+        bc = inc.id_bc
+        term = bc.id_terminal if bc else None
 
-        # Terminal (nombre si hay FK; si no, el código)
-        term_obj = getattr(bc, 'id_terminal', None)
-        terminal = getattr(term_obj, 'nombre_terminal', None) if term_obj else None
-        if not terminal:
-            terminal = getattr(bc, 'id_terminal', '—')
+        # NORMALIZAR ESTADO
+        estado_val = (inc.estado or "").lower().replace("ó", "o")
 
-        # Control interno (usuario que registró la incidencia)
-        ci_obj = getattr(inc, 'id_usuario', None)
-        control_interno = getattr(ci_obj, 'nombre', '—')
-
-        # Estado: normalizamos el texto para evitar problemas con acentos/variantes
-        estado_val = (getattr(inc, 'estado', '') or '').strip()
-        estado_norm = estado_val.lower()
-        if estado_norm in ('observacion', 'observación', 'observado', 'observada', 'observac', 'obs'):
-            estado = 'observado'
+        if "observ" in estado_val or "obs" in estado_val:
+            estado = "Observado"
         else:
-            estado = 'Conforme'
+            estado = "Conforme"
 
-        motivo = getattr(inc, 'motivo', '') or ''
-
-        evidencia_val = getattr(inc, 'evidencia', None)
-        evidencia = evidencia_val.url if evidencia_val else ''
-
-        fecha_revision = getattr(inc, 'fecha_revision', None)
+        evidencia = inc.evidencia.url if inc.evidencia else ""
 
         rows.append({
-            'fecha': fecha,
-            'nombre': bc_nombre,
-            'usuario': bc_usuario,
-            'cargo': bc_cargo,
-            'terminal': terminal,
-            'control_interno': control_interno,
-            'estado': estado,
-            'motivo': motivo,
-            'evidencia': evidencia,
-            'fecha_revision': fecha_revision,
+            "fecha": inc.fecha_incidencia,
+            "nombre": bc.nombre if bc else "—",
+            "usuario": bc.usuario if bc else "—",
+            "cargo": bc.cargo if bc else "—",
+            "terminal": term.nombre_terminal if term else "—",
+            "control_interno": inc.id_usuario.nombre if inc.id_usuario else "—",
+            "estado": estado,
+            "motivo": inc.motivo or "—",
+            "evidencia": evidencia,
+            "fecha_revision": inc.fecha_revision,
         })
 
-    # Para preservar el filtro en los links de paginación (ahora incluimos todos los filtros)
-    preserved_parts = []
-    for k in ('rev_desde','rev_hasta','f1','f2','terminal','estado','usuario','motivo','ci'):
+    # ==========================
+    #  Preservar filtros para paginación
+    # ==========================
+    preserved = ""
+    for k in ("f1", "f2", "r1", "r2", "terminal", "estado", "usuario", "motivo", "ci"):
         v = request.GET.get(k)
         if v:
-            preserved_parts.append(f"&{k}={v}")
-    preserved = ''.join(preserved_parts)
+            preserved += f"&{k}={v}"
 
+    # ==========================
+    # Contexto final
+    # ==========================
     context = {
-        'usuario_nombre': request.session.get('nombre', 'Usuario'),
-        'terminal_actual': request.session.get('terminal') or '—',
-        'rows': rows,
+        "usuario_nombre": request.session.get("nombre", "Usuario"),
+        "terminal_actual": request.session.get("terminal") or "—",
 
-        # Paginación
-        'page_obj': page_obj,
-        'preserved': preserved,
-        'rev_desde': rev_desde or '',
-        'rev_hasta': rev_hasta or '',
+        "rows": rows,
+        "page_obj": page_obj,
+        "preserved": preserved,
 
-        # Aquí agregamos los boleteros y terminales (para el modal / filtros)
-        'boleteros': BoleteroCajero.objects.all(),
-        'terminales': Terminal.objects.all().order_by('id_terminal'),
+        # reutilizamos valores para mantenerlos en los inputs
+        "f1": f1 or "",
+        "f2": f2 or "",
+        "r1": r1 or "",
+        "r2": r2 or "",
+        "terminal_selected": terminal_filter or "",
+        "estado": estado_filter or "",
+        "usuario": usuario_filter or "",
+        "motivo": motivo_filter or "",
+        "ci": ci_filter or "",
+
+        "boleteros": BoleteroCajero.objects.all(),
+        "terminales": Terminal.objects.all().order_by("id_terminal"),
+
+        # NUEVOS SELECTS
+        "usuarios_bc": BoleteroCajero.objects.filter(estado="activo").order_by("usuario"),
+        "usuarios_ci": Usuario.objects.filter(rol="control_interno").order_by("nombre"),
+            
+        "boleteros": BoleteroCajero.objects.all(),
+        "terminales": Terminal.objects.all().order_by("id_terminal"),
+        "control_internos": Usuario.objects.filter(rol="control_interno"),
+        
+        
     }
-    return render(request, 'control_interno_dashboard.html', context)
+
+
+    return render(request, "control_interno_dashboard.html", context)
+
 
 
 
