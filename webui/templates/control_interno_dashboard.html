@@ -160,16 +160,77 @@
     <p class="hello">Bienvenido {{ usuario_nombre }} — Terminal: <strong>{{ terminal_actual }}</strong></p>
 
     <!-- Filtro por fecha de revisión -->
-  <form method="get" style="margin: 0 0 12px 0; display:flex; gap:8px; align-items:center;">
-    <label>Desde
-      <input type="date" name="rev_desde" value="{{ rev_desde }}">
-    </label>
-    <label>Hasta
-      <input type="date" name="rev_hasta" value="{{ rev_hasta }}">
-    </label>
-    <button type="submit">Filtrar</button>
-    <a href="{% url 'panel_control_interno' %}">Limpiar</a>
+ <!-- === FILTROS DE BUSQUEDA === -->
+  <form method="get"
+        style="
+          background:#f1f5f9;
+          padding:16px;
+          border-radius:8px;
+          margin-bottom:18px;
+        ">
+
+      <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:12px;">
+          <div>
+              <label>Fecha desde</label>
+              <input type="date" name="f1" value="{{ f1 }}" style="width:100%;">
+          </div>
+
+          <div>
+              <label>Fecha hasta</label>
+              <input type="date" name="f2" value="{{ f2 }}" style="width:100%;">
+          </div>
+
+          <div>
+              <label>Terminal</label>
+              <select name="terminal" style="width:100%;">
+                  <option value="">Todos</option>
+                  {% for t in terminales %}
+                      <option value="{{ t.id_terminal }}"
+                          {% if terminal_selected == t.id_terminal|stringformat:'s' %}selected{% endif %}>
+                          {{ t.nombre_terminal }}
+                      </option>
+                  {% endfor %}
+              </select>
+          </div>
+
+          <div>
+              <label>Estado</label>
+              <select name="estado" style="width:100%;">
+                  <option value="">Todos</option>
+                  <option value="Conforme" {% if estado == "Conforme" %}selected{% endif %}>Conforme</option>
+                  <option value="Observado" {% if estado == "Observado" %}selected{% endif %}>Observado</option>
+              </select>
+          </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: repeat(3,1fr); gap:12px; margin-top:12px;">
+          <div>
+              <label>Usuario (boletero/cajero)</label>
+              <input type="text" name="usuario" value="{{ usuario }}" placeholder="Nombre o usuario…" style="width:100%;">
+          </div>
+
+          <div>
+              <label>Control interno</label>
+              <input type="text" name="ci" value="{{ ci }}" placeholder="Nombre…" style="width:100%;">
+          </div>
+
+          <div>
+              <label>Motivo contiene</label>
+              <input type="text" name="motivo" value="{{ motivo }}" placeholder="Buscar texto…" style="width:100%;">
+          </div>
+      </div>
+
+      <div style="margin-top:14px;">
+          <button type="submit"
+                  style="padding:8px 14px; background:#1b7f6b; color:white; border:none; border-radius:6px; cursor:pointer;">
+              🔍 Filtrar
+          </button>
+
+          <a href="{% url 'panel_control_interno' %}" style="margin-left:12px;">Limpiar</a>
+      </div>
+
   </form>
+
 
 
     
@@ -203,7 +264,7 @@
                 {% if r.estado == "Conforme" %}
                   <span class="badge ok">Conforme</span>
                 {% else %}
-                  <span class="badge warn">Observación</span>
+                  <span class="badge warn">Observado</span>
                 {% endif %}
               </td>
               <td class="tooltip-container"><span class="motivo-preview">{{ r.motivo|truncatechars:30 }}</span>

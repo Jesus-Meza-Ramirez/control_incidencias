@@ -80,34 +80,78 @@ def dashboard_redirect(request):
 # ============================
 #  PANEL CONTROL INTERNO (UI)
 # ============================
+# pega esto reemplazando la función panel_control_interno existente
 def panel_control_interno(request):
     maybe_redirect = _require_session(request)
     if maybe_redirect:
         return maybe_redirect
 
     # ---- Parámetros GET para filtro de fechas (DateField) ----
+    # (antiguos: rev_desde / rev_hasta -- los dejamos para compatibilidad)
     rev_desde = request.GET.get('rev_desde')  # 'YYYY-MM-DD'
     rev_hasta = request.GET.get('rev_hasta')  # 'YYYY-MM-DD'
+
+    # ---- Nuevos filtros avanzados desde el formulario ----
+    f1 = request.GET.get('f1')         # fecha incidencia desde
+    f2 = request.GET.get('f2')         # fecha incidencia hasta
+    terminal_filter = request.GET.get('terminal')
+    estado_filter = request.GET.get('estado')
+    usuario_filter = (request.GET.get('usuario') or '').strip()
+    motivo_filter = (request.GET.get('motivo') or '').strip()
+    ci_filter = (request.GET.get('ci') or '').strip()
 
     # ---- Query base (más recientes primero por fecha_revision) ----
     qs = (
         Incidencia.objects
-        .select_related('id_bc', 'id_usuario')
+        .select_related('id_bc', 'id_usuario', 'id_bc__id_terminal')
         .order_by('-fecha_revision', '-id_incidencia')
     )
 
-    # ---- Filtro por rango de fechas si se envían ambos ----
+    # ---- Aplicar filtros avanzados (si vienen) ----
+    # Filtro por rango de fecha de incidencia (f1,f2)
+    if f1 and f2:
+        try:
+            d1 = date.fromisoformat(f1)
+            d2 = date.fromisoformat(f2)
+            if d1 > d2:
+                d1, d2 = d2, d1
+            qs = qs.filter(fecha_incidencia__range=(d1, d2))
+        except ValueError:
+            pass
+
+    # Filtro por terminal (FK en id_bc.id_terminal_id)
+    if terminal_filter:
+        qs = qs.filter(id_bc__id_terminal_id=terminal_filter)
+
+    # Filtro por estado (por ejemplo "Conforme" o "Observación")
+    if estado_filter:
+        qs = qs.filter(estado__iexact=estado_filter)
+
+    # Filtro por usuario (boletero nombre o usuario)
+    if usuario_filter:
+        qs = qs.filter(
+            Q(id_bc__nombre__icontains=usuario_filter) |
+            Q(id_bc__usuario__icontains=usuario_filter)
+        )
+
+    # Filtro por texto en motivo
+    if motivo_filter:
+        qs = qs.filter(motivo__icontains=motivo_filter)
+
+    # Filtro por control interno (nombre)
+    if ci_filter:
+        qs = qs.filter(id_usuario__nombre__icontains=ci_filter)
+
+    # ---- Si hay filtro viejo por fecha_revision (rev_desde/rev_hasta) lo aplicamos también ----
     if rev_desde and rev_hasta:
         try:
             d1 = date.fromisoformat(rev_desde)
             d2 = date.fromisoformat(rev_hasta)
             if d1 > d2:
                 d1, d2 = d2, d1
-            # fecha_revision es DateField => usar __range directamente
             qs = qs.filter(fecha_revision__range=(d1, d2))
             qs = qs.filter(fecha_revision__isnull=False)
         except ValueError:
-            # Si hay formato inválido, ignoramos el filtro
             pass
 
     # ---- Cap de 5 páginas máx (20 por página => 100 registros) ----
@@ -140,7 +184,7 @@ def panel_control_interno(request):
 
         # Terminal (nombre si hay FK; si no, el código)
         term_obj = getattr(bc, 'id_terminal', None)
-        terminal = getattr(term_obj, 'nombre', None) if term_obj else None
+        terminal = getattr(term_obj, 'nombre_terminal', None) if term_obj else None
         if not terminal:
             terminal = getattr(bc, 'id_terminal', '—')
 
@@ -148,14 +192,16 @@ def panel_control_interno(request):
         ci_obj = getattr(inc, 'id_usuario', None)
         control_interno = getattr(ci_obj, 'nombre', '—')
 
-        # Estado y demás campos
-        estado_val = getattr(inc, 'estado', '') or ''
-        estado = 'Observación' if estado_val.lower() == 'observado' else 'Conforme'
-        motivo = getattr(inc, 'motivo', '—')
+        # Estado: normalizamos el texto para evitar problemas con acentos/variantes
+        estado_val = (getattr(inc, 'estado', '') or '').strip()
+        estado_norm = estado_val.lower()
+        if estado_norm in ('observacion', 'observación', 'observado', 'observada', 'observac', 'obs'):
+            estado = 'observado'
+        else:
+            estado = 'Conforme'
 
-        #evidencia_val = getattr(inc, 'evidencia', '')
-        #evidencia = evidencia_val.url if hasattr(evidencia_val, 'url') else (evidencia_val or '')
-        
+        motivo = getattr(inc, 'motivo', '') or ''
+
         evidencia_val = getattr(inc, 'evidencia', None)
         evidencia = evidencia_val.url if evidencia_val else ''
 
@@ -174,12 +220,13 @@ def panel_control_interno(request):
             'fecha_revision': fecha_revision,
         })
 
-    # Para preservar el filtro en los links de paginación
-    preserved = ''
-    if rev_desde:
-        preserved += f'&rev_desde={rev_desde}'
-    if rev_hasta:
-        preserved += f'&rev_hasta={rev_hasta}'
+    # Para preservar el filtro en los links de paginación (ahora incluimos todos los filtros)
+    preserved_parts = []
+    for k in ('rev_desde','rev_hasta','f1','f2','terminal','estado','usuario','motivo','ci'):
+        v = request.GET.get(k)
+        if v:
+            preserved_parts.append(f"&{k}={v}")
+    preserved = ''.join(preserved_parts)
 
     context = {
         'usuario_nombre': request.session.get('nombre', 'Usuario'),
@@ -191,12 +238,14 @@ def panel_control_interno(request):
         'preserved': preserved,
         'rev_desde': rev_desde or '',
         'rev_hasta': rev_hasta or '',
-        # Aquí agregamos los boleteros
+
+        # Aquí agregamos los boleteros y terminales (para el modal / filtros)
         'boleteros': BoleteroCajero.objects.all(),
-        "terminales": Terminal.objects.all().order_by("id_terminal")
-        
+        'terminales': Terminal.objects.all().order_by('id_terminal'),
     }
     return render(request, 'control_interno_dashboard.html', context)
+
+
 
 
 # ============================
