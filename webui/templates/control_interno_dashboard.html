@@ -210,6 +210,8 @@
 }
 
 
+
+
 </style>
 
 <div class="layout">
@@ -239,125 +241,139 @@
     <!-- Filtro por fecha de revisión -->
     <!-- === FILTROS DE BUSQUEDA === -->
     <form method="get"
-          style="background:#f1f5f9; padding:16px; border-radius:8px; margin-bottom:18px;">
+        style="background:#f1f5f9; padding:14px; border-radius:10px; margin-bottom:18px; overflow-x:auto; white-space:nowrap;">
 
-        <h3 style="margin:0 0 14px 0; color:#1b7f6b;">Filtros avanzados</h3>
+        <h3 style="margin:0 0 12px 0; color:#1b7f6b; font-weight:700;">Filtros avanzados</h3>
 
-        <!-- GRID PRINCIPAL 2 COLUMNAS -->
-        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:18px;">
+        <div style="display:flex; gap:22px; align-items:flex-end; flex-wrap:nowrap;">
 
-            <!-- === BLOQUE 1: FECHA INCIDENCIA === -->
-            <div style="background:#e8f2ff; padding:14px; border-radius:8px;">
-                <h4 style="margin:0 0 10px; color:#0057a3; font-size:15px;">
-                    📅 Fechas de incidencia
-                </h4>
+            <!-- =====================
+                GRUPO: FECHA INCIDENCIA
+            ====================== -->
+            <div style="background:#e8f2ff; padding:10px 12px; border-radius:8px;">
+                <label style="display:block; font-size:14px; font-weight:700; margin-bottom:6px; color:#0057a3;">
+                    📅 Fecha de incidencia
+                </label>
 
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                    <div>
-                        <label>Desde</label>
-                        <input type="date" name="f1" value="{{ f1 }}"
-                              style="width:100%; padding:6px;">
+                <div style="display:flex; gap:10px;">
+                    <div style="display:flex; flex-direction:column;">
+                        <label style="font-size:12px;">Desde</label>
+                        <input type="date" name="f1" value="{{ f1 }}" style="padding:5px; min-width:130px;">
                     </div>
 
-                    <div>
-                        <label>Hasta</label>
-                        <input type="date" name="f2" value="{{ f2 }}"
-                              style="width:100%; padding:6px;">
-                    </div>
-                </div>
-            </div>
-
-            <!-- === BLOQUE 2: FECHA REVISION === -->
-            <div style="background:#e8ffeb; padding:14px; border-radius:8px;">
-                <h4 style="margin:0 0 10px; color:#0d6b28; font-size:15px;">
-                    📋 Fechas de revisión
-                </h4>
-
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
-                    <div>
-                        <label>Desde</label>
-                        <input type="date" name="r1" value="{{ r1 }}"
-                              style="width:100%; padding:6px;">
-                    </div>
-
-                    <div>
-                        <label>Hasta</label>
-                        <input type="date" name="r2" value="{{ r2 }}"
-                              style="width:100%; padding:6px;">
+                    <div style="display:flex; flex-direction:column;">
+                        <label style="font-size:12px;">Hasta</label>
+                        <input type="date" name="f2" value="{{ f2 }}" style="padding:5px; min-width:130px;">
                     </div>
                 </div>
             </div>
 
-        </div>
+            <!-- =====================
+                GRUPO: FECHA REVISIÓN
+            ====================== -->
+            <div style="background:#e8ffeb; padding:10px 12px; border-radius:8px;">
+                <label style="display:block; font-size:14px; font-weight:700; margin-bottom:6px; color:#0d6b28;">
+                    📋 Fecha de revisión
+                </label>
 
-        <!-- === BLOQUE 3: OTROS FILTROS === -->
-        <div style="background:white; padding:16px; margin-top:16px; border-radius:8px;">
+                <div style="display:flex; gap:10px;">
+                    <div style="display:flex; flex-direction:column;">
+                        <label style="font-size:12px;">Desde</label>
+                        <input type="date" name="r1" value="{{ r1 }}" style="padding:5px; min-width:130px;">
+                    </div>
 
-            <h4 style="margin:0 0 10px; color:#333;">🔎 Otros filtros</h4>
+                    <div style="display:flex; flex-direction:column;">
+                        <label style="font-size:12px;">Hasta</label>
+                        <input type="date" name="r2" value="{{ r2 }}" style="padding:5px; min-width:130px;">
+                    </div>
+                </div>
+            </div>
 
-            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:12px;">
-                
-                <div>
-                    <label>Terminal</label>
-                    <select name="terminal" id="filtroTerminal" style="width:100%; padding:6px;">
-                        <option value="">Todos</option>
-                        {% for t in terminales %}
+            <!-- =====================
+                GRUPO: OTROS FILTROS
+            ====================== -->
+            <div style="background:#ffffff; padding:10px 12px; border-radius:8px; border:1px solid #e2e8f0;">
+                <label style="display:block; font-size:14px; font-weight:700; margin-bottom:6px; color:#333;">
+                    🔎 Otros filtros
+                </label>
+
+                <div style="display:flex; gap:14px;">
+
+                    <!-- TERMINAL -->
+                    <div style="display:flex; flex-direction:column;">
+                        <label style="font-size:12px;">Terminal</label>
+                        <select name="terminal" id="filtroTerminal" style="padding:5px; min-width:120px;">
+                            <option value="">Todos</option>
+                            {% for t in terminales %}
                             <option value="{{ t.id_terminal }}"
                                 {% if terminal_selected == t.id_terminal|stringformat:'s' %}selected{% endif %}>
                                 {{ t.nombre_terminal }}
                             </option>
-                        {% endfor %}
-                    </select>
-                </div>
+                            {% endfor %}
+                        </select>
+                    </div>
 
-                <div>
-                    <label>Estado</label>
-                    <select name="estado" style="width:100%; padding:6px;">
-                        <option value="">Todos</option>
-                        <option value="Conforme" {% if estado == "Conforme" %}selected{% endif %}>Conforme</option>
-                        <option value="Observado" {% if estado == "Observado" %}selected{% endif %}>Observado</option>
-                    </select>
-                </div>
+                    <!-- ESTADO -->
+                    <div style="display:flex; flex-direction:column;">
+                        <label style="font-size:12px;">Estado</label>
+                        <select name="estado" style="padding:5px; min-width:120px;">
+                            <option value="">Todos</option>
+                            <option value="Conforme" {% if estado == "Conforme" %}selected{% endif %}>Conforme</option>
+                            <option value="Observado" {% if estado == "Observado" %}selected{% endif %}>Observado</option>
+                        </select>
+                    </div>
 
-              <div>
-                  <label>Usuario </label>
-                  <select name="usuario" id="filtroUsuario" style="width:100%; padding:6px;">
-                      <option value="">Todos</option>
-                      {% for b in boleteros %}
-                          <option value="{{ b.usuario }}"
-                              data-terminal="{{ b.id_terminal_id }}"
-                              {% if usuario == b.usuario %}selected{% endif %}>
-                              {{ b.usuario }}
-                          </option>
-                      {% endfor %}
-                  </select>
-              </div>
+                    <!-- USUARIO -->
+                    <div style="display:flex; flex-direction:column;">
+                        <label style="font-size:12px;">Usuario</label>
+                        <select name="usuario" id="filtroUsuario" style="padding:5px; min-width:130px;">
+                            <option value="">Todos</option>
+                            {% for b in boleteros %}
+                            <option value="{{ b.usuario }}"
+                                data-terminal="{{ b.id_terminal_id }}"
+                                {% if usuario == b.usuario %}selected{% endif %}>
+                                {{ b.usuario }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
 
-                <div>
-                    <label>Control interno</label>
-                    <select name="ci" style="width:100%; padding:6px;"><option value="">Todos</option>
-                      {% for u in usuarios_ci %}
-                          <option value="{{ u.usuario_login }}" 
-                              {% if ci == u.usuario_login %}selected{% endif %}>
-                              {{ u.usuario_login }}
-                          </option>
-                      {% endfor %}
-                   </select>
-
+                    <!-- CONTROL INTERNO -->
+                    <div style="display:flex; flex-direction:column;">
+                        <label style="font-size:12px;">Control interno</label>
+                        <select name="ci" style="padding:5px; min-width:140px;">
+                            <option value="">Todos</option>
+                            {% for u in usuarios_ci %}
+                            <option value="{{ u.usuario_login }}" 
+                                {% if ci == u.usuario_login %}selected{% endif %}>
+                                {{ u.usuario_login }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
                 </div>
             </div>
 
-            <div style="margin-top:12px;">
+            <!-- =====================
+                BOTONES
+            ====================== -->
+            <div style="display:flex; gap:10px; align-items:center; margin-left:10px;">
+
                 <button type="submit"
-                    style="padding:8px 14px; background:#1b7f6b; color:white; border:none; border-radius:6px; cursor:pointer;">
+                    style="padding:9px 16px; background:#1b7f6b; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">
                     🔍 Filtrar
                 </button>
 
-                <a href="{% url 'panel_control_interno' %}" style="margin-left:12px;">Limpiar</a>
+                <a href="{% url 'panel_control_interno' %}"
+                style="padding:8px 14px; background:#e2e8f0; color:#1e293b; border-radius:6px; font-weight:600; text-decoration:none;">
+                    Limpiar
+                </a>
             </div>
+
         </div>
 
     </form>
+
 
 
 
