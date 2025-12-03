@@ -15,8 +15,10 @@ from django.urls import reverse
 
 from incidencias.models import BoleteroCajero, Terminal
 
-
-
+import io
+from django.http import HttpResponse
+from openpyxl import Workbook
+from django.db.models import Q
     
 def _require_session(request):
     """Redirect to login si no hay sesión."""
@@ -519,4 +521,146 @@ def panel_admin_sistema(request):
 
 
 
+def exportar_incidencias_excel(request):
+    """
+    Genera un archivo xlsx con las incidencias según filtros GET.
+    """
 
+    # ------- Leer filtros GET (mismos nombres que en el dashboard) -------
+    f1 = request.GET.get("f1")    # fecha incidencia desde
+    f2 = request.GET.get("f2")    # fecha incidencia hasta
+    r1 = request.GET.get("r1")    # fecha revision desde
+    r2 = request.GET.get("r2")    # fecha revision hasta
+    terminal_filter = request.GET.get("terminal")
+    estado_filter = request.GET.get("estado")
+    usuario_filter = (request.GET.get("usuario") or "").strip()
+    motivo_filter = (request.GET.get("motivo") or "").strip()
+    ci_filter = (request.GET.get("ci") or "").strip()
+
+    # ------- Query base -------
+    qs = (
+        Incidencia.objects
+        .select_related("id_bc", "id_usuario", "id_bc__id_terminal")
+        .order_by("-fecha_revision", "-id_incidencia")
+    )
+
+    # ------- Aplicar filtros (igual que en panel) -------
+    if f1 and f2:
+        try:
+            d1 = date.fromisoformat(f1)
+            d2 = date.fromisoformat(f2)
+            if d1 > d2:
+                d1, d2 = d2, d1
+            qs = qs.filter(fecha_incidencia__range=(d1, d2))
+        except ValueError:
+            pass
+
+    if r1 and r2:
+        try:
+            rd1 = date.fromisoformat(r1)
+            rd2 = date.fromisoformat(r2)
+            if rd1 > rd2:
+                rd1, rd2 = rd2, rd1
+            qs = qs.filter(fecha_revision__range=(rd1, rd2))
+        except ValueError:
+            pass
+
+    if terminal_filter:
+        qs = qs.filter(id_bc__id_terminal_id=terminal_filter)
+
+    if estado_filter:
+        qs = qs.filter(estado__iexact=estado_filter)
+
+    if usuario_filter:
+        qs = qs.filter(
+            Q(id_bc__nombre__icontains=usuario_filter) |
+            Q(id_bc__usuario__icontains=usuario_filter)
+        )
+
+    if motivo_filter:
+        qs = qs.filter(motivo__icontains=motivo_filter)
+
+    if ci_filter:
+        qs = qs.filter(id_usuario__nombre__icontains=ci_filter)
+
+    # Opcional: limitar el número de filas a exportar (evita перегрузку)
+    MAX_ROWS = 5000
+    qs = qs[:MAX_ROWS]
+
+    # ------- Construir workbook con openpyxl -------
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Incidencias"
+
+    headers = [
+        "Fecha de incidencia",
+        "Nombre (boletero/cajero)",
+        "Usuario",
+        "Cargo",
+        "Terminal",
+        "Control interno",
+        "Estado",
+        "Motivo",
+        "Fecha de revisión",
+        "Evidencia (archivo)"
+    ]
+    ws.append(headers)
+
+    # rellenar filas
+    for inc in qs:
+        bc = getattr(inc, "id_bc", None)
+        bc_nombre = getattr(bc, "nombre", "") if bc else ""
+        bc_usuario = getattr(bc, "usuario", "") if bc else ""
+        bc_cargo = getattr(bc, "cargo", "") if bc else ""
+        term_obj = getattr(bc, "id_terminal", None)
+        terminal_name = getattr(term_obj, "nombre_terminal", "") if term_obj else (getattr(bc, "id_terminal", "") if bc else "")
+
+        control_interno = getattr(inc, "id_usuario", None)
+        control_interno_name = getattr(control_interno, "nombre", "") if control_interno else ""
+
+        # Normalizar estado (misma lógica que en tu vista)
+        estado_val = (getattr(inc, "estado", "") or "").strip()
+        estado_norm = estado_val.lower()
+        if estado_norm in ('observacion', 'observación', 'observado', 'observada', 'observac', 'obs'):
+            estado_text = 'Observado'
+        else:
+            estado_text = 'Conforme'
+
+        motivo = getattr(inc, "motivo", "") or ""
+        evidencia_val = getattr(inc, "evidencia", None)
+        evidencia = evidencia_val.name if evidencia_val else ""
+
+        fecha_incid = getattr(inc, "fecha_incidencia", None)
+        fecha_rev = getattr(inc, "fecha_revision", None)
+
+        row = [
+            fecha_incid.isoformat() if fecha_incid else "",
+            bc_nombre,
+            bc_usuario,
+            bc_cargo,
+            terminal_name,
+            control_interno_name,
+            estado_text,
+            motivo,
+            fecha_rev.isoformat() if fecha_rev else "",
+            evidencia
+        ]
+        ws.append(row)
+
+    # Opcional: ajustar ancho columnas (simple)
+    column_widths = [18, 30, 15, 12, 14, 22, 12, 40, 18, 30]
+    for i, width in enumerate(column_widths, start=1):
+        ws.column_dimensions[chr(64 + i)].width = width
+
+    # Guardar workbook en memoria y devolver como response
+    output = io.BytesIO()
+    wb.save(output)
+    output.seek(0)
+
+    filename = "incidencias_export.xlsx"
+    response = HttpResponse(
+        output.read(),
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response

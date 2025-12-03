@@ -2,6 +2,7 @@
 from django.contrib import admin
 from django.urls import path, include     # <-- include agregado
 from django.conf import settings
+from webui.views import exportar_incidencias_excel
 from django.conf.urls.static import static
 from webui.views import (
     login_view, logout_view, dashboard_redirect,
@@ -22,6 +23,9 @@ urlpatterns = [
     path('panel/admin-sistema/', panel_admin_sistema, name='panel_admin_sistema'),
 
     path("incidencias/", include("incidencias.urls")),
+    
+    
+    path('panel/reportes/export-excel/', exportar_incidencias_excel, name='export_excel'),
 
 
 ]

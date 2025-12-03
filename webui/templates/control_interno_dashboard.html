@@ -361,13 +361,22 @@
 
                 <button type="submit"
                     style="padding:9px 16px; background:#1b7f6b; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">
-                    🔍 Filtrar
+                    Filtrar
                 </button>
 
                 <a href="{% url 'panel_control_interno' %}"
                 style="padding:8px 14px; background:#e2e8f0; color:#1e293b; border-radius:6px; font-weight:600; text-decoration:none;">
                     Limpiar
                 </a>
+
+                <a
+                  href="{% url 'export_excel' %}?{{ request.GET.urlencode }}"
+                  class="btn-filtrar"
+                  style="background:#0b66a0; display:inline-block; padding:8px 12px; color:#fff; border-radius:6px; text-decoration:none; margin-left:8px;"
+                >
+                  Exportar Excel
+                </a>
+
             </div>
 
         </div>
