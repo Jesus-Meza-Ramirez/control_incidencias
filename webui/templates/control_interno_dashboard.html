@@ -187,27 +187,61 @@
     border-radius: 6px;
 }
 
-/* Botones */
-.acciones {
-    margin-top: 12px;
+/* ===================== BOTONES ===================== */
+
+.btn-filtrar,
+.btn-limpiar,
+.btn-excel {
+    transition: all 0.25s ease;
+    cursor: pointer;
 }
 
+/* BOTÓN FILTRAR */
 .btn-filtrar {
     background: #1b7f6b;
-    color: white;
-    padding: 8px 16px;
+    color: white !important;
+    padding: 9px 16px;
     border-radius: 6px;
-    border: none;
-    cursor: pointer;
     font-weight: 600;
+    border: none;
 }
-.btn-filtrar:hover { background:#145c50; }
+.btn-filtrar:hover {
+    background: #145c50;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.12);
+}
 
+/* BOTÓN LIMPIAR */
 .btn-limpiar {
-    margin-left: 12px;
-    color:#334155;
-    font-size: 14px;
+    background: #e2e8f0;
+    color:#1e293b !important;
+    padding: 8px 14px;
+    border-radius: 6px;
+    font-weight: 600;
+    text-decoration:none;
 }
+.btn-limpiar:hover {
+    background: #cbd5e1;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.12);
+}
+
+/* BOTÓN EXCEL */
+.btn-excel {
+    background:#0b66a0;
+    color:white !important;
+    padding:8px 14px;
+    border-radius:6px;
+    font-weight:600;
+    text-decoration:none;
+    margin-left:8px;
+}
+.btn-excel:hover {
+    background:#084d78;
+    transform: translateY(-2px);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.12);
+}
+
 
 
 
@@ -241,11 +275,12 @@
     <!-- Filtro por fecha de revisión -->
     <!-- === FILTROS DE BUSQUEDA === -->
     <form method="get"
-        style="background:#f1f5f9; padding:14px; border-radius:10px; margin-bottom:18px; overflow-x:auto; white-space:nowrap;">
+        style="background:#f1f5f9; padding:14px; border-radius:10px; margin-bottom:18px; overflow-x:auto;">
 
         <h3 style="margin:0 0 12px 0; color:#1b7f6b; font-weight:700;">Filtros avanzados</h3>
 
-        <div style="display:flex; gap:22px; align-items:flex-end; flex-wrap:nowrap;">
+        <!-- 🔹 CONTENEDOR FLEX CON WRAP -->
+        <div style="display:flex; gap:22px; align-items:flex-start; flex-wrap:wrap;">
 
             <!-- =====================
                 GRUPO: FECHA INCIDENCIA
@@ -354,34 +389,34 @@
                 </div>
             </div>
 
-            <!-- =====================
-                BOTONES
-            ====================== -->
-            <div style="display:flex; gap:10px; align-items:center; margin-left:10px;">
+        </div> <!-- fin del contenedor de filtros -->
 
-                <button type="submit"
-                    style="padding:9px 16px; background:#1b7f6b; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">
-                    Filtrar
-                </button>
 
-                <a href="{% url 'panel_control_interno' %}"
+        <!-- ============================
+            🔽 BOTONES ABAJO (EN SU FILA)
+        ============================= -->
+        <div style="margin-top:18px; display:flex; gap:12px;">
+
+            <button type="submit" class="btn-filtrar"
+                style="padding:9px 16px; background:#1b7f6b; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">
+                Filtrar
+            </button>
+
+            <a href="{% url 'panel_control_interno' %}" class="btn-limpiar"
                 style="padding:8px 14px; background:#e2e8f0; color:#1e293b; border-radius:6px; font-weight:600; text-decoration:none;">
-                    Limpiar
-                </a>
+                Limpiar
+            </a>
 
-                <a
-                  href="{% url 'export_excel' %}?{{ request.GET.urlencode }}"
-                  class="btn-filtrar"
-                  style="background:#0b66a0; display:inline-block; padding:8px 12px; color:#fff; border-radius:6px; text-decoration:none; margin-left:8px;"
-                >
-                  Exportar Excel
-                </a>
-
-            </div>
+            <a href="{% url 'export_excel' %}?{{ request.GET.urlencode }}" class="btn-excel"
+                
+                style="background:#0b66a0; display:inline-block; padding:8px 12px; color:#fff; border-radius:6px; text-decoration:none;">
+                Exportar Excel
+            </a>
 
         </div>
 
     </form>
+
 
 
 
