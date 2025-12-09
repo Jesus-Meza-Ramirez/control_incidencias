@@ -17,17 +17,19 @@ urlpatterns = [
     path('logout/', logout_view, name='logout'),
     path('home/', dashboard_redirect, name='home'),
 
-    # Paneles
+    # Paneles principales
     path('panel/control-interno/', panel_control_interno, name='panel_control_interno'),
     path('panel/admin-terminal/', panel_admin_terminal, name='panel_admin_terminal'),
     path('panel/admin-sistema/', panel_admin_sistema, name='panel_admin_sistema'),
 
+    # Apps con include
     path("incidencias/", include("incidencias.urls")),
-    
-    
+    path("webui/", include("webui.urls")),  # 👈 FALTABA ESTO
+
+
     path('panel/reportes/export-excel/', exportar_incidencias_excel, name='export_excel'),
-
-
+    
+    
 ]
 
 if settings.DEBUG:

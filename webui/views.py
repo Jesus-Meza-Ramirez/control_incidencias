@@ -1,5 +1,7 @@
 # webui/views.py
 from django.shortcuts import render, redirect
+from django.shortcuts import get_object_or_404, redirect
+from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.views.decorators.http import require_http_methods
 from usuarios.models import Usuario
@@ -152,15 +154,18 @@ def panel_control_interno(request):
     # 🎯 Filtro Estado NORMALIZADO
     # ==========================
     if estado_filter:
-        estado_filter_norm = estado_filter.lower().replace("ó", "o")
+        # viene como "Conforme", "Observado", "Pendiente", "Resuelto"
+        estado_filter_norm = (estado_filter or "").lower().replace("ó", "o")
 
-        if estado_filter_norm == "observado":
-            qs = qs.filter(
-                Q(estado__icontains="observ") |
-                Q(estado__icontains="obs")
-            )
-        elif estado_filter_norm == "conforme":
+        if estado_filter_norm.startswith("observ"):
+            qs = qs.filter(estado__icontains="observ")
+        elif estado_filter_norm.startswith("pend"):
+            qs = qs.filter(estado__icontains="pendiente")
+        elif estado_filter_norm.startswith("resu"):
+            qs = qs.filter(estado__icontains="resuelto")
+        elif estado_filter_norm.startswith("conf"):
             qs = qs.filter(estado__icontains="conforme")
+
 
     # ==========================
     # 🎯 Usuario boletero/cajero
@@ -206,13 +211,18 @@ def panel_control_interno(request):
         bc = inc.id_bc
         term = bc.id_terminal if bc else None
 
-        # NORMALIZAR ESTADO
+        # NORMALIZAR ESTADO (4 estados posibles)
         estado_val = (inc.estado or "").lower().replace("ó", "o")
 
-        if "observ" in estado_val or "obs" in estado_val:
+        if estado_val.startswith("observ"):
             estado = "Observado"
+        elif estado_val.startswith("pend"):
+            estado = "Pendiente"
+        elif estado_val.startswith("resu"):
+            estado = "Resuelto"
         else:
             estado = "Conforme"
+
 
         evidencia = inc.evidencia.url if inc.evidencia else ""
 
@@ -359,6 +369,9 @@ def panel_admin_terminal(request):
     # 7. Construcción de filas para la tabla
     rows = []
     for inc in page_obj.object_list:
+        # ID incidencia (👈 necesario para el botón "Atender")
+        inc_id = getattr(inc, 'id_incidencia', None)
+
         # Fecha de incidencia
         fecha = getattr(inc, 'fecha_incidencia', None)
 
@@ -379,19 +392,32 @@ def panel_admin_terminal(request):
         control_interno = getattr(ci_obj, 'nombre', '—')
 
         # Estado
-        estado_val = getattr(inc, 'estado', '') or ''
-        estado = 'Observación' if estado_val.lower() == 'observado' else 'Conforme'
-        motivo = getattr(inc, 'motivo', '—')
+        # Estado (normalizado a 4 etiquetas: Conforme, Observado, Pendiente, Resuelto)
+        estado_val = (getattr(inc, 'estado', '') or '').lower().replace('ó', 'o')
 
+        if estado_val.startswith('observ'):
+            estado = 'Observado'
+        elif estado_val.startswith('pend'):
+            estado = 'Pendiente'
+        elif estado_val.startswith('resu'):
+            estado = 'Resuelto'
+        else:
+            estado = 'Conforme'
+
+        motivo = getattr(inc, 'motivo', '—')
+   
+   
         # Evidencia
-        #evidencia_val = getattr(inc, 'evidencia', '')
-        #evidencia = evidencia_val.url if hasattr(evidencia_val, 'url') else (evidencia_val or '')
+        
+        
+        
         evidencia_val = getattr(inc, 'evidencia', None)
         evidencia = evidencia_val.url if evidencia_val else ''
 
         fecha_revision = getattr(inc, 'fecha_revision', None)
 
         rows.append({
+            'id_incidencia': inc_id,      # 👈 NUEVO
             'fecha': fecha,
             'nombre': bc_nombre,
             'usuario': bc_usuario,
@@ -403,12 +429,12 @@ def panel_admin_terminal(request):
             'evidencia': evidencia,
             'fecha_revision': fecha_revision,
         })
-
+        
     # 8. Tarjetas de resumen (usamos el mismo queryset filtrado por terminal)
     cards = {
-        'activas': qs_for_cards.count(),
-        'pendientes': qs_for_cards.filter(estado__iexact='observado').count(),
-        'resueltas': qs_for_cards.filter(estado__iexact='conforme').count(),
+        'activas': qs_for_cards.exclude(estado__iexact='resuelto').count(),  # todo lo no resuelto
+        'pendientes': qs_for_cards.filter(estado__iexact='pendiente').count(),  # pendiente de revisión
+        'resueltas': qs_for_cards.filter(estado__iexact='resuelto').count(),
     }
 
     # 9. Preservar filtros de fecha en los links de paginación
@@ -421,16 +447,19 @@ def panel_admin_terminal(request):
     # 10. Contexto para el template
     context = {
         'usuario_nombre': request.session.get('nombre', 'Usuario'),
-        'terminal_name': terminal_name,    # ← este es el que usa tu HTML
+        'terminal_name': terminal_name,
         'rows': rows,
+        
         'cards': cards,
-
+        
         'page_obj': page_obj,
         'preserved': preserved,
         'rev_desde': rev_desde or '',
         'rev_hasta': rev_hasta or '',
     }
     return render(request, 'admin_terminal_dashboard.html', context)
+
+
 
 
 def panel_admin_sistema(request):
@@ -664,3 +693,46 @@ def exportar_incidencias_excel(request):
     )
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
+
+
+
+
+@require_POST
+def resolver_incidencia(request):
+    # Verificar sesión como en el panel
+    maybe_redirect = _require_session(request)
+    if maybe_redirect:
+        return maybe_redirect
+
+    inc_id = request.POST.get('id_incidencia')
+    incidencia = get_object_or_404(Incidencia, pk=inc_id)
+
+    # Campos del formulario
+    solucion_txt = request.POST.get('solucion_admin', '').strip()
+    fecha_sol_str = request.POST.get('fecha_solucion', '')
+    evidencia_file = request.FILES.get('evidencia_solucion')
+
+    # Guardar solución
+    incidencia.solucion_admin = solucion_txt
+
+    # Fecha de solución: la que vino del form o hoy
+    if fecha_sol_str:
+        try:
+            incidencia.fecha_solucion = date.fromisoformat(fecha_sol_str)
+        except ValueError:
+            incidencia.fecha_solucion = timezone.now().date()
+    else:
+        incidencia.fecha_solucion = timezone.now().date()
+
+    # Evidencia de solución (si adjuntan)
+    if evidencia_file:
+        incidencia.evidencia_solucion = evidencia_file
+
+    # Marcar como conforme y registrar revisión
+    incidencia.estado = 'pendiente'
+    
+
+    incidencia.save()
+
+    messages.success(request, 'La incidencia fue actualizada correctamente.')
+    return redirect('panel_admin_terminal')

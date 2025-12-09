@@ -72,6 +72,29 @@ class Incidencia(models.Model):
     evidencia = models.ImageField(upload_to='evidencias/', blank=True, null=True, db_column='evidencia')
     fecha_revision = models.DateField(db_column='fecha_revision', null=True, blank=True)
     
+    
+    
+    solucion_admin = models.TextField(
+        blank=True,
+        null=True,
+        db_column='solucion_admin'
+    )
+
+    evidencia_solucion = models.ImageField(
+        upload_to='evidencias_solucion/',
+        blank=True,
+        null=True,
+        db_column='evidencia_solucion'
+    )
+
+    fecha_solucion = models.DateField(
+        null=True,
+        blank=True,
+        db_column='fecha_solucion'
+    )
+    
+    
+    
     def __str__(self):
         return f"{self.tipo_incidencia} - {self.id_bc.nombre}"
 

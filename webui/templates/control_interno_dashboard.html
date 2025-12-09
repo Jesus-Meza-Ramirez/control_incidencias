@@ -103,6 +103,19 @@
   .badge.ok { background:#e8f7ee; color:#1e7d3f; }
   .badge.warn { background:#fff3cd; color:#7a5d00; }
 
+
+    /* Estado Pendiente (azulito) */
+  .badge.pending {
+    background:#dbeafe;   /* azul claro */
+    color:#1d4ed8;        /* azul fuerte */
+  }
+
+  /* Estado Resuelto (por si lo usas luego) */
+  .badge.done {
+    background:#f3e8ff;   /* lila claro */
+    color:#6b21a8;        /* lila fuerte */
+  }
+
   /* ====== RESPONSIVE ====== */
   @media (max-width: 1024px) {
     .layout { grid-template-columns: 200px 1fr; }
@@ -351,11 +364,14 @@
                     <!-- ESTADO -->
                     <div style="display:flex; flex-direction:column;">
                         <label style="font-size:12px;">Estado</label>
-                        <select name="estado" style="padding:5px; min-width:120px;">
-                            <option value="">Todos</option>
-                            <option value="Conforme" {% if estado == "Conforme" %}selected{% endif %}>Conforme</option>
-                            <option value="Observado" {% if estado == "Observado" %}selected{% endif %}>Observado</option>
-                        </select>
+                            <select name="estado" style="padding:5px; min-width:120px;">
+                                <option value="">Todos</option>
+                                <option value="Conforme"  {% if estado == "Conforme"  %}selected{% endif %}>Conforme</option>
+                                <option value="Observado" {% if estado == "Observado" %}selected{% endif %}>Observado</option>
+                                <option value="Pendiente" {% if estado == "Pendiente" %}selected{% endif %}>Pendiente</option>
+                                <option value="Resuelto"  {% if estado == "Resuelto"  %}selected{% endif %}>Resuelto</option>
+                            </select>
+
                     </div>
 
                     <!-- USUARIO -->
@@ -457,10 +473,18 @@
                     <td>
                         {% if r.estado == "Conforme" %}
                             <span class="badge ok">Conforme</span>
-                        {% else %}
+                        {% elif r.estado == "Observado" %}
                             <span class="badge warn">Observado</span>
+                        {% elif r.estado == "Pendiente" %}
+                            <span class="badge pending">Pendiente</span>
+                        {% elif r.estado == "Resuelto" %}
+                            <span class="badge done">Resuelto</span>
+                        {% else %}
+                            <span class="badge warn">{{ r.estado }}</span>
                         {% endif %}
                     </td>
+
+
 
                     <td class="tooltip-container">
                         <span class="motivo-preview">{{ r.motivo|truncatechars:30 }}</span>
@@ -723,8 +747,8 @@ document.addEventListener("DOMContentLoaded", () => {
       <select name="estado"
               
               style="width:100%; margin-bottom:10px;">
-        <option value="Conforme">Conforme</option>
-        <option value="Observación">Observación</option>
+        <option value="conforme">Conforme</option>
+        <option value="observado">Observación</option>
       </select>
 
       <label>Evidencia (imagen / archivo):</label>

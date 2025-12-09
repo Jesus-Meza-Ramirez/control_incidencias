@@ -92,6 +92,9 @@
   .badge.ok { background:#e8f7ee; color:#1e7d3f; }
   .badge.warn { background:#fff3cd; color:#7a5d00; }
 
+  .badge.pending { background:#dbeafe; color:#1d4ed8; }   /* azulito */
+  .badge.resuelto { background:#dcfce7; color:#15803d; }  /* verdecito más suave */
+
   /* ===== RESPONSIVE ===== */
   @media (max-width: 1024px) {
     .layout { grid-template-columns: 200px 1fr; }
@@ -131,6 +134,23 @@
 
 .tooltip-container:hover .tooltip-box {
     display: block;
+}
+
+
+
+.btn-solucion {
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: #2563eb;
+  color: #fff;
+  transition: background 0.2s;
+}
+
+.btn-solucion:hover {
+  background: #1d4ed8;
 }
 
 </style>
@@ -195,6 +215,7 @@
             <th>Motivo</th>
             <th>Fecha de revisión</th>
             <th>Evidencia</th>
+            <th>Acción</th>
           </tr>
         </thead>
         <tbody>
@@ -208,11 +229,18 @@
             <td>{{ r.control_interno }}</td>
             <td>
               {% if r.estado == "Conforme" %}
-                <span class="badge ok">Conforme</span>
+                  <span class="badge ok">Conforme</span>
+              {% elif r.estado == "Observado" %}
+                  <span class="badge warn">Observado</span>
+              {% elif r.estado == "Pendiente" %}
+                  <span class="badge pending">Pendiente</span>
+              {% elif r.estado == "Resuelto" %}
+                  <span class="badge resuelto">Resuelto</span>
               {% else %}
-                <span class="badge warn">Observación</span>
+                  <span class="badge warn">{{ r.estado }}</span>
               {% endif %}
             </td>
+
             <td class="tooltip-container"><span class="motivo-preview">{{ r.motivo|truncatechars:30 }}</span>
             <div class="tooltip-box">{{ r.motivo }}</div></td>
             <td>{{ r.fecha_revision|date:"d-m-Y" }}</td>
@@ -223,6 +251,24 @@
                 —
               {% endif %}
             </td>
+
+            <td>
+              {% if r.estado != "Conforme" %}
+                <button type="button"
+                        class="btn-solucion"
+                        data-id="{{ r.id_incidencia }}"
+                        data-motivo="{{ r.motivo|escapejs }}"
+                        data-evidencia="{{ r.evidencia }}">
+                        
+                  Atender
+                </button>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+
+
+
           </tr>
           {% empty %}
           <tr><td colspan="10" style="text-align:center; color:#6b7280;">No hay incidencias</td></tr>
@@ -247,7 +293,15 @@
     {% endif %}
   </section>
 </div>
-{% endblock %}
+
+
+
+
+
+
+
+
+
 
 <!-- Modal evidencia -->
 <div id="evidenceModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:9999; align-items:center; justify-content:center; padding:24px;">
@@ -261,8 +315,92 @@
   </div>
 </div>
 
+
+
+
+<!-- Modal solución -->
+<div id="solutionModal"
+     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:10000; align-items:center; justify-content:center; padding:24px;">
+  <div style="background:#ffffff; border-radius:10px; max-width:520px; width:100%; padding:20px 22px; position:relative;">
+    <button id="closeSolution"
+            style="position:absolute; top:8px; right:8px; background:#e5e7eb; border:none; border-radius:999px; width:28px; height:28px; cursor:pointer; font-weight:700;">
+      ✕
+    </button>
+
+    <h3 style="margin:0 0 12px; font-size:18px; font-weight:700; color:#111827;">
+      Registrar solución
+    </h3>
+
+    <p style="font-size:13px; color:#4b5563; margin-bottom:8px;">
+      <strong>Motivo reportado:</strong>
+      <span id="motivoText" style="display:block; margin-top:4px;"></span>
+    </p>
+
+
+    <p>
+      <label style="display:block; margin-bottom:4px;">Evidencia:</label>
+      <span id="solutionEvidence">—</span>
+    </p>
+
+
+    <form id="solutionForm"
+          method="post"
+          enctype="multipart/form-data"
+          action="{% url 'resolver_incidencia' %}">
+      {% csrf_token %}
+      <input type="hidden" name="id_incidencia" id="incidenciaIdField">
+
+      <div style="margin-bottom:10px;">
+        <label for="solucionField" style="display:block; font-size:13px; margin-bottom:4px;">Respuesta del administrador</label>
+        <textarea id="solucionField"
+                  name="solucion_admin"
+                  rows="4"
+                  required
+                  style="width:100%; font-size:13px; padding:6px 8px; border-radius:6px; border:1px solid #d1d5db;"></textarea>
+      </div>
+
+      <div style="margin-bottom:10px;">
+        <label for="evidenciaSolField" style="display:block; font-size:13px; margin-bottom:4px;">Evidencia de solución (opcional)</label>
+        <input id="evidenciaSolField"
+               type="file"
+               name="evidencia_solucion"
+               accept="image/*,application/pdf"
+               style="font-size:13px;">
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label for="fechaSolField" style="display:block; font-size:13px; margin-bottom:4px;">Fecha de solución</label>
+        <!-- Solo para mostrar, NO se envía en el formulario -->
+        <input id="fechaSolField"
+              type="text"
+              readonly
+              style="font-size:13px; padding:4px 6px; border-radius:6px; border:1px solid #d1d5db; background:#f3f4f6; cursor:not-allowed;"/>
+      </div>
+
+
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button type="button"
+                onclick="document.getElementById('solutionForm').reset()"
+                style="border:1px solid #d1d5db; background:#f9fafb; border-radius:6px; padding:6px 12px; font-size:13px; cursor:pointer;">
+          Limpiar
+        </button>
+        <button type="submit"
+                style="border:none; background:#16a34a; color:#fff; border-radius:6px; padding:6px 14px; font-size:13px; cursor:pointer;">
+          Guardar solución
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+
+
+
+
 <script>
   (function () {
+    // ====== MODAL EVIDENCIA (ya lo tenías) ======
     const modal = document.getElementById('evidenceModal');
     const img = document.getElementById('evidenceImg');
     const btnX = document.getElementById('closeEvidence');
@@ -283,10 +421,17 @@
       img.src = '';
     }
 
-    btnX.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.style.display === 'flex') closeModal(); });
+    if (btnX) btnX.addEventListener('click', closeModal);
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+      });
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && modal.style.display === 'flex') closeModal();
+    });
 
+    // Links "Ver" de la tabla principal
     document.querySelectorAll('.evidence-link').forEach(a => {
       a.addEventListener('click', (e) => {
         const url = a.dataset.url || a.href;
@@ -298,5 +443,109 @@
         }
       });
     });
+
+    // ====== MODAL SOLUCIÓN ======
+    const solutionModal = document.getElementById('solutionModal');
+    const closeSolutionBtn = document.getElementById('closeSolution');
+    const solutionForm = document.getElementById('solutionForm');
+    const incidenciaIdField = document.getElementById('incidenciaIdField');
+    const motivoText = document.getElementById('motivoText');
+    const fechaSolField = document.getElementById('fechaSolField');
+    const solutionEvidence = document.getElementById('solutionEvidence');
+
+    function openSolutionModal(btn) {
+      const id = btn.dataset.id;
+      const motivo = btn.dataset.motivo || '';
+      const evidencia = btn.dataset.evidencia || '';
+
+      if (incidenciaIdField) incidenciaIdField.value = id;
+      if (motivoText) motivoText.textContent = motivo;
+
+      // 🔹 Pintar el botoncito "Ver" de la evidencia
+      if (solutionEvidence) {
+        if (evidencia) {
+          // si es imagen, usar el mismo visor modal
+          if (isImage(evidencia)) {
+            solutionEvidence.innerHTML =
+              '<a href="#" id="solutionEvidenceLink">Ver</a>';
+
+            const link = document.getElementById('solutionEvidenceLink');
+            if (link) {
+              link.addEventListener('click', function (e) {
+                e.preventDefault();
+                openModal(evidencia);
+              });
+            }
+          } else {
+            // pdf u otro archivo -> nueva pestaña
+            solutionEvidence.innerHTML =
+              '<a href="' + evidencia +
+              '" target="_blank" rel="noopener">Ver</a>';
+          }
+        } else {
+          solutionEvidence.textContent = '—';
+        }
+      }
+
+      // Fecha de solución: hoy por defecto (solo si está vacío)
+      if (fechaSolField && !fechaSolField.value) {
+        const hoy = new Date().toISOString().slice(0, 10);
+        fechaSolField.value = hoy;
+      }
+
+      if (solutionModal) solutionModal.style.display = 'flex';
+    }
+
+    function closeSolutionModal() {
+      if (solutionModal) solutionModal.style.display = 'none';
+      if (solutionForm) solutionForm.reset();
+      if (solutionEvidence) solutionEvidence.textContent = '—';
+    }
+
+    document.querySelectorAll('.btn-solucion').forEach(btn => {
+      btn.addEventListener('click', () => openSolutionModal(btn));
+    });
+
+    if (closeSolutionBtn) {
+      closeSolutionBtn.addEventListener('click', closeSolutionModal);
+    }
+
+    if (solutionModal) {
+      solutionModal.addEventListener('click', (e) => {
+        if (e.target === solutionModal) closeSolutionModal();
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' &&
+          solutionModal &&
+          solutionModal.style.display === 'flex') {
+        closeSolutionModal();
+      }
+    });
+
   })();
 </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{% endblock %}
+
+
+
+
+
+
