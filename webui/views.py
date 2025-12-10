@@ -478,11 +478,15 @@ def panel_admin_sistema(request):
     if not request.session.get('uid'):
         return redirect('login')
 
-    # 2) Query base de usuarios (con la FK a terminal si existe)
+    # 🔹 Roles que SÍ se muestran en el dashboard
+    ROLES_ADMIN = ['admin_sistema', 'admin_terminal', 'control_interno']
+
+    # 2) Query base de usuarios (solo roles administradores)
     qs = (
         Usuario.objects
-        .select_related('id_terminal')   # asumiendo que tu FK se llama así
-        .order_by('id_usuario')          # cambia si prefieres otra orden
+        .select_related('id_terminal')          # FK a terminal
+        .filter(rol__in=ROLES_ADMIN)           # ⬅️ solo estos roles
+        .order_by('id_usuario')
     )
 
     # 3) (Opcional) Búsqueda rápida ?q=
@@ -493,7 +497,7 @@ def panel_admin_sistema(request):
             Q(usuario_login__icontains=q) |
             Q(rol__icontains=q) |
             Q(id_terminal__nombre__icontains=q) |
-            Q(id_terminal__icontains=q)  # por si ID/código viene como texto
+            Q(id_terminal__icontains=q)
         )
 
     # 4) Paginación
@@ -507,22 +511,23 @@ def panel_admin_sistema(request):
     except EmptyPage:
         page_obj = paginator.page(1)
 
-    # 5) Adaptar filas al template (tolerante a campos ausentes)
+    # 5) Adaptar filas al template
     usuarios_rows = []
     for u in page_obj.object_list:
-        # fecha ingreso (usa el que tengas)
+        # fecha ingreso (usa el campo que tengas)
         fecha_ing = getattr(u, 'fecha_ingreso', None) or getattr(u, 'fecha_creacion', None)
 
-        # terminal: si es FK con nombre, úsalo; si no, muestra el valor tal cual
+        # terminal
         term_obj = getattr(u, 'id_terminal', None)
         term_name = getattr(term_obj, 'nombre', None) if term_obj else None
         if not term_name:
             term_name = term_obj or '—'
 
-        # activo: booleano o string
+        # activo
         activo_val = getattr(u, 'activo', None)
+        
         if activo_val is None:
-            # intenta con estado/flag alternativos
+            
             estado = (getattr(u, 'estado', '') or '').lower()
             activo_bool = estado in ('activo', 'activa', '1', 'true', 'sí', 'si')
         else:

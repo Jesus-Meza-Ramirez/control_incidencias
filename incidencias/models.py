@@ -38,6 +38,8 @@ class Incidencia(models.Model):
     ESTADOS = [
         ('conforme', 'Conforme'),
         ('observado', 'Observado'),
+        ('pendiente', 'Pendiente'),
+        ('resuelto', 'Resuelto'),
     ]
     id_incidencia = models.AutoField(primary_key=True, db_column='id_incidencia')
     id_bc = models.ForeignKey(
