@@ -355,10 +355,15 @@ def panel_admin_terminal(request):
             # Formato raro → ignoramos filtro
             pass
 
-    # Guardamos este queryset para las tarjetas
+    # 👉 Query para las tarjetas (solo filtra por terminal + fechas)
     qs_for_cards = qs
 
-    # 6. Paginación (20 por página)
+    # 6. Filtro por estado vía cards (Conforme / Observado / Pendiente / Resuelto)
+    estado_card = (request.GET.get('estado_card') or '').lower()
+    if estado_card in ('conforme', 'observado', 'pendiente', 'resuelto'):
+        qs = qs.filter(estado__iexact=estado_card)
+
+    # 7. Paginación (20 por página)
     per_page = 20
     paginator = Paginator(qs, per_page)
     try:
@@ -371,58 +376,51 @@ def panel_admin_terminal(request):
     except EmptyPage:
         page_obj = paginator.page(1)
 
-    # 7. Construcción de filas para la tabla
+    # 8. Construcción de filas para la tabla
     rows = []
     for inc in page_obj.object_list:
-        # ID incidencia (👈 necesario para el botón "Atender")
+        
         inc_id = getattr(inc, 'id_incidencia', None)
-
-        # Fecha de incidencia
+        
         fecha = getattr(inc, 'fecha_incidencia', None)
 
-        # Boletero/Cajero
+
         bc = getattr(inc, 'id_bc', None)
         bc_nombre = getattr(bc, 'nombre', '—')
         bc_usuario = getattr(bc, 'usuario', '—')
         bc_cargo   = getattr(bc, 'cargo', '—') if bc else '—'
 
-        # Terminal (nombre si hay FK; si no, el código)
+
         term_obj = getattr(bc, 'id_terminal', None)
         terminal_txt = getattr(term_obj, 'nombre', None) if term_obj else None
         if not terminal_txt:
             terminal_txt = getattr(bc, 'id_terminal', '—')
 
-        # Control interno
+
         ci_obj = getattr(inc, 'id_usuario', None)
         control_interno = getattr(ci_obj, 'nombre', '—')
 
-        # Estado
-        # Estado (normalizado a 4 etiquetas: Conforme, Observado, Pendiente, Resuelto)
-        estado_val = (getattr(inc, 'estado', '') or '').lower().replace('ó', 'o')
+        # Estado crudo en BD
+        estado_raw = (getattr(inc, 'estado', '') or '').lower()
 
-        if estado_val.startswith('observ'):
+        if estado_raw == 'observado':
             estado = 'Observado'
-        elif estado_val.startswith('pend'):
+        elif estado_raw == 'pendiente':  # o 'pendiente_revision'
             estado = 'Pendiente'
-        elif estado_val.startswith('resu'):
+        elif estado_raw == 'resuelto':
             estado = 'Resuelto'
         else:
             estado = 'Conforme'
 
         motivo = getattr(inc, 'motivo', '—')
-   
-   
-        # Evidencia
-        
-        
-        
+
         evidencia_val = getattr(inc, 'evidencia', None)
         evidencia = evidencia_val.url if evidencia_val else ''
 
         fecha_revision = getattr(inc, 'fecha_revision', None)
 
         rows.append({
-            'id_incidencia': inc_id,      # 👈 NUEVO
+            'id_incidencia': inc_id,
             'fecha': fecha,
             'nombre': bc_nombre,
             'usuario': bc_usuario,
@@ -430,26 +428,32 @@ def panel_admin_terminal(request):
             'terminal': terminal_txt,
             'control_interno': control_interno,
             'estado': estado,
+            'estado_raw': estado_raw,  # por si lo necesitas después
             'motivo': motivo,
             'evidencia': evidencia,
             'fecha_revision': fecha_revision,
         })
-        
-    # 8. Tarjetas de resumen (usamos el mismo queryset filtrado por terminal)
+
+    # 9. Tarjetas de resumen (usamos el queryset sin filtro de estado_card)
     cards = {
-        'activas': qs_for_cards.exclude(estado__iexact='resuelto').count(),  # todo lo no resuelto
-        'pendientes': qs_for_cards.filter(estado__iexact='pendiente').count(),  # pendiente de revisión
+        'activas': qs_for_cards.exclude(estado__iexact='resuelto').count(),
+        'pendientes': qs_for_cards.filter(estado__iexact='pendiente').count(),
         'resueltas': qs_for_cards.filter(estado__iexact='resuelto').count(),
+        'conformes': qs_for_cards.filter(estado__iexact='conforme').count(),
+        'observadas': qs_for_cards.filter(estado__iexact='observado').count(),
+        "total": qs_for_cards.count(),  # 👈 NUEVO
     }
 
-    # 9. Preservar filtros de fecha en los links de paginación
+    # 10. Preservar filtros en paginación
     preserved = ''
     if rev_desde:
         preserved += f'&rev_desde={rev_desde}'
     if rev_hasta:
         preserved += f'&rev_hasta={rev_hasta}'
+    if estado_card:
+        preserved += f'&estado_card={estado_card}'
 
-    # 10. Contexto para el template
+    # 11. Contexto para el template
     context = {
         'usuario_nombre': request.session.get('nombre', 'Usuario'),
         'terminal_name': terminal_name,
@@ -461,8 +465,10 @@ def panel_admin_terminal(request):
         'preserved': preserved,
         'rev_desde': rev_desde or '',
         'rev_hasta': rev_hasta or '',
+        'estado_card': estado_card,   # para marcar el card activo
     }
     return render(request, 'admin_terminal_dashboard.html', context)
+
 
 
 

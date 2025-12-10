@@ -164,6 +164,74 @@
   background: #1d4ed8;
 }
 
+
+.card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.card-link.card-active .card {
+  border: 2px solid #1b7f6b;
+  box-shadow: 0 0 0 1px rgba(27,127,107,0.25);
+}
+
+
+
+
+/* Cards por estado (mismo esquema que las badges) */
+.card-estado {
+    border-left: 5px solid transparent;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.card-estado:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.10);
+}
+
+/* 👉 Conforme  = badge.ok */
+.card-conforme {
+    background: #e8f7ee;       /* igual que badge.ok */
+    border-color: #1e7d3f;     /* tono del texto */
+    color: #1e7d3f;
+}
+
+/* 👉 Observado = badge.warn */
+.card-observado {
+    background: #fff3cd;       /* igual que badge.warn */
+    border-color: #7a5d00;
+    color: #7a5d00;
+}
+
+/* 👉 Pendiente = badge.pending (lila) */
+.card-pendiente {
+    background: #f3e8ff;       /* igual que badge.pending */
+    border-color: #6b21a8;
+    color: #6b21a8;
+}
+
+/* 👉 Resuelto = badge.done (azul) */
+.card-resuelto {
+    background: #dbeafe;       /* igual que badge.done */
+    border-color: #1d4ed8;
+    color: #1d4ed8;
+}
+
+/* Card activa cuando hay filtro por ese estado */
+.card-link.card-active .card {
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.15);
+    transform: scale(1.02);
+}
+
+/* Card neutro para el total */
+.card-total {
+    background: #e2e8f0;   /* gris clarito */
+    border-color: #475569; /* gris oscuro */
+    color: #334155;
+}
+
+
 </style>
 
 <div class="layout">
@@ -183,20 +251,57 @@
     <p class="hello">Bienvenido {{ usuario_nombre }} — Terminal: <strong>{{ terminal_name }}</strong></p>
 
     <!-- Tarjetas resumen -->
-    <div class="cards">
-      <div class="card">
-        <h3>Incidencias activas</h3>
-        <p>{{ cards.activas }}</p>
-      </div>
-      <div class="card">
-        <h3>Incidencias pendientes</h3>
-        <p>{{ cards.pendientes }}</p>
-      </div>
-      <div class="card">
-        <h3>Incidencias resueltas</h3>
-        <p>{{ cards.resueltas }}</p>
-      </div>
+
+<!-- Tarjetas por estado (clic = filtro) -->
+<div class="cards" style="margin-top:10px;">
+
+
+  <a href="?estado_card=total"
+   class="card-link {% if estado_card == 'total' %}card-active{% endif %}">
+    <div class="card card-estado card-total">
+        <h3>Total de incidencias</h3>
+        <p>{{ cards.total }}</p>
     </div>
+  </a>
+
+
+
+  <a href="?estado_card=conforme"
+     class="card-link {% if estado_card == 'conforme' %}card-active{% endif %}">
+    <div class="card card-estado card-conforme">
+      <h3>Conformes</h3>
+      <p>{{ cards.conformes }}</p>
+    </div>
+  </a>
+
+  <a href="?estado_card=observado"
+     class="card-link {% if estado_card == 'observado' %}card-active{% endif %}">
+    <div class="card card-estado card-observado">
+      <h3>Observados</h3>
+      <p>{{ cards.observadas }}</p>
+    </div>
+  </a>
+
+  <a href="?estado_card=pendiente"
+     class="card-link {% if estado_card == 'pendiente' %}card-active{% endif %}">
+    <div class="card card-estado card-pendiente">
+      <h3>Pendientes</h3>
+      <p>{{ cards.pendientes }}</p>
+    </div>
+  </a>
+
+  <a href="?estado_card=resuelto"
+     class="card-link {% if estado_card == 'resuelto' %}card-active{% endif %}">
+    <div class="card card-estado card-resuelto">
+      <h3>Resueltos</h3>
+      <p>{{ cards.resueltas }}</p>
+    </div>
+  </a>
+
+</div>
+
+
+
 
     <!-- Filtro por fecha -->
     <form method="get" style="margin: 0 0 12px 0; display:flex; gap:8px; align-items:center;">
@@ -410,6 +515,16 @@
 
 <script>
   (function () {
+
+    // ====== helper para HOY en horario local (YYYY-MM-DD) ======
+    function getHoyLocalISO() {
+      const hoy = new Date();
+      const year  = hoy.getFullYear();
+      const month = String(hoy.getMonth() + 1).padStart(2, '0'); // 0–11
+      const day   = String(hoy.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
     // ====== MODAL EVIDENCIA (ya lo tenías) ======
     const modal = document.getElementById('evidenceModal');
     const img = document.getElementById('evidenceImg');
@@ -438,7 +553,9 @@
       });
     }
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal.style.display === 'flex') closeModal();
+      if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
+        closeModal();
+      }
     });
 
     // Links "Ver" de la tabla principal
@@ -466,7 +583,6 @@
     const solucionField = document.getElementById('solucionField');
     const evidenciaSolField = document.getElementById('evidenciaSolField');
     const clearSolutionBtn = document.getElementById('btnClearSolution');
-
 
     function openSolutionModal(btn) {
       const id = btn.dataset.id;
@@ -504,8 +620,10 @@
 
       // Fecha de solución: hoy por defecto (solo si está vacío)
       if (fechaSolField && !fechaSolField.value) {
-        const hoy = new Date().toISOString().slice(0, 10);
-        fechaSolField.value = hoy;
+        const hoyLocal = getHoyLocalISO();      // ✅ fecha local
+        fechaSolField.value = hoyLocal;
+        // opcional: guardamos por si algún día quieres restaurarla
+        fechaSolField.dataset.originalDate = hoyLocal;
       }
 
       if (solutionModal) solutionModal.style.display = 'flex';
@@ -517,17 +635,14 @@
       if (solutionEvidence) solutionEvidence.textContent = '—';
     }
 
-
-
-        // Botón "Limpiar": solo limpia texto y archivo, NO la fecha
+    // Botón "Limpiar": solo limpia texto y archivo, NO la fecha
     if (clearSolutionBtn) {
       clearSolutionBtn.addEventListener('click', () => {
         if (solucionField) solucionField.value = '';
         if (evidenciaSolField) evidenciaSolField.value = '';
-        // OJO: NO tocamos fechaSolField, así la fecha se mantiene
+        // NO tocamos fechaSolField para que conserve la fecha
       });
     }
-
 
     document.querySelectorAll('.btn-solucion').forEach(btn => {
       btn.addEventListener('click', () => openSolutionModal(btn));
@@ -553,6 +668,7 @@
 
   })();
 </script>
+
 
 
 
