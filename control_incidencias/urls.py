@@ -6,7 +6,7 @@ from webui.views import exportar_incidencias_excel
 from django.conf.urls.static import static
 from webui.views import (
     login_view, logout_view, dashboard_redirect,
-    panel_control_interno, panel_admin_terminal, panel_admin_sistema
+    panel_control_interno, panel_admin_terminal, panel_admin_sistema, actualizar_estado_control_interno
 )
 
 urlpatterns = [
@@ -28,6 +28,10 @@ urlpatterns = [
 
 
     path('panel/reportes/export-excel/', exportar_incidencias_excel, name='export_excel'),
+    
+    
+    path("ci/estado/", actualizar_estado_control_interno, name="actualizar_estado_control_interno"),
+
     
     
 ]

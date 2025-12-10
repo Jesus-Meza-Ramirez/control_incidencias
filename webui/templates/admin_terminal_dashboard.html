@@ -92,8 +92,19 @@
   .badge.ok { background:#e8f7ee; color:#1e7d3f; }
   .badge.warn { background:#fff3cd; color:#7a5d00; }
 
-  .badge.pending { background:#dbeafe; color:#1d4ed8; }   /* azulito */
-  .badge.resuelto { background:#dcfce7; color:#15803d; }  /* verdecito más suave */
+
+    /* Estado Pendiente (azulito) */
+  .badge.pending {
+
+    background:#f3e8ff;   /* lila claro */
+    color:#6b21a8;        /* lila fuerte */ 
+  }
+
+  /* Estado Resuelto (por si lo usas luego) */
+  .badge.done {
+    background:#dbeafe;   /* azul claro */
+    color:#1d4ed8;        /* azul fuerte */  
+  }
 
   /* ===== RESPONSIVE ===== */
   @media (max-width: 1024px) {
@@ -161,8 +172,7 @@
     <div class="brand">JAKSA</div>
     <ul class="menu">
       <li><a href="{% url 'panel_admin_terminal' %}">Dashboard</a></li>
-      <li><a href="#">Consultar incidencia</a></li>
-      <li><a href="#">Reportes</a></li>
+
       <li><a href="{% url 'logout' %}">Cerrar sesión</a></li>
     </ul>
   </aside>
@@ -228,17 +238,17 @@
             <td>{{ r.terminal }}</td>
             <td>{{ r.control_interno }}</td>
             <td>
-              {% if r.estado == "Conforme" %}
-                  <span class="badge ok">Conforme</span>
-              {% elif r.estado == "Observado" %}
-                  <span class="badge warn">Observado</span>
-              {% elif r.estado == "Pendiente" %}
-                  <span class="badge pending">Pendiente</span>
-              {% elif r.estado == "Resuelto" %}
-                  <span class="badge resuelto">Resuelto</span>
-              {% else %}
-                  <span class="badge warn">{{ r.estado }}</span>
-              {% endif %}
+                {% if r.estado == "Conforme" %}
+                    <span class="badge ok">Conforme</span>
+                {% elif r.estado == "Observado" %}
+                    <span class="badge warn">Observado</span>
+                {% elif r.estado == "Pendiente" %}
+                    <span class="badge pending">Pendiente</span>
+                {% elif r.estado == "Resuelto" %}
+                    <span class="badge done">Resuelto</span>
+                {% else %}
+                    <span class="badge warn">{{ r.estado }}</span>
+                 {% endif %}
             </td>
 
             <td class="tooltip-container"><span class="motivo-preview">{{ r.motivo|truncatechars:30 }}</span>
@@ -253,19 +263,19 @@
             </td>
 
             <td>
-              {% if r.estado != "Conforme" %}
+              {% if r.estado == "Observado" %}
                 <button type="button"
                         class="btn-solucion"
                         data-id="{{ r.id_incidencia }}"
                         data-motivo="{{ r.motivo|escapejs }}"
                         data-evidencia="{{ r.evidencia }}">
-                        
                   Atender
                 </button>
               {% else %}
                 —
               {% endif %}
             </td>
+
 
 
 
@@ -380,7 +390,7 @@
 
       <div style="display:flex; justify-content:flex-end; gap:8px;">
         <button type="button"
-                onclick="document.getElementById('solutionForm').reset()"
+                id="btnClearSolution"
                 style="border:1px solid #d1d5db; background:#f9fafb; border-radius:6px; padding:6px 12px; font-size:13px; cursor:pointer;">
           Limpiar
         </button>
@@ -453,6 +463,11 @@
     const fechaSolField = document.getElementById('fechaSolField');
     const solutionEvidence = document.getElementById('solutionEvidence');
 
+    const solucionField = document.getElementById('solucionField');
+    const evidenciaSolField = document.getElementById('evidenciaSolField');
+    const clearSolutionBtn = document.getElementById('btnClearSolution');
+
+
     function openSolutionModal(btn) {
       const id = btn.dataset.id;
       const motivo = btn.dataset.motivo || '';
@@ -501,6 +516,18 @@
       if (solutionForm) solutionForm.reset();
       if (solutionEvidence) solutionEvidence.textContent = '—';
     }
+
+
+
+        // Botón "Limpiar": solo limpia texto y archivo, NO la fecha
+    if (clearSolutionBtn) {
+      clearSolutionBtn.addEventListener('click', () => {
+        if (solucionField) solucionField.value = '';
+        if (evidenciaSolField) evidenciaSolField.value = '';
+        // OJO: NO tocamos fechaSolField, así la fecha se mantiene
+      });
+    }
+
 
     document.querySelectorAll('.btn-solucion').forEach(btn => {
       btn.addEventListener('click', () => openSolutionModal(btn));

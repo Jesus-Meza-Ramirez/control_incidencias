@@ -106,14 +106,15 @@
 
     /* Estado Pendiente (azulito) */
   .badge.pending {
-    background:#dbeafe;   /* azul claro */
-    color:#1d4ed8;        /* azul fuerte */
+
+    background:#f3e8ff;   /* lila claro */
+    color:#6b21a8;        /* lila fuerte */ 
   }
 
   /* Estado Resuelto (por si lo usas luego) */
   .badge.done {
-    background:#f3e8ff;   /* lila claro */
-    color:#6b21a8;        /* lila fuerte */
+    background:#dbeafe;   /* azul claro */
+    color:#1d4ed8;        /* azul fuerte */  
   }
 
   /* ====== RESPONSIVE ====== */
@@ -256,7 +257,20 @@
 }
 
 
+.btn-respuesta {
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: #2563eb;
+  color: #fff;
+  transition: background 0.2s;
+}
 
+.btn-solucion:hover {
+  background: #1d4ed8;
+}
 
 
 </style>
@@ -274,8 +288,9 @@
 
 
 
+
+
       
-      <li><a href="#">Reportes</a></li>
       <li><a href="{% url 'logout' %}">Cerrar sesión</a></li>
     </ul>
   </aside>
@@ -457,6 +472,8 @@
                     <th>Motivo</th>
                     <th>Fecha de revisión</th>
                     <th>Evidencia</th>
+                    <th>Respuesta</th>
+
                 </tr>
             </thead>
 
@@ -500,7 +517,28 @@
                             —
                         {% endif %}
                     </td>
+
+                    <td>
+                        {% if r.estado == "Pendiente" and r.solucion_admin %}
+                            <button class="btn-respuesta"
+                                    data-respuesta="{{ r.solucion_admin|escapejs }}"
+                                    data-evidencia="{{ r.evidencia_solucion }}"
+                                    data-id="{{ r.id_incidencia }}"
+                                    data-fecha-respuesta="{{ r.fecha_solucion|date:'d-m-Y' }}">
+                                Ver respuesta
+                            </button>
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+
+                    
                 </tr>
+                
+
+
+
+
                 {% empty %}
                 <tr>
                     <td colspan="10" style="text-align:center; color:#6b7280;">
@@ -605,59 +643,129 @@ document.addEventListener("DOMContentLoaded", function () {
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-
+    /* ===========================
+       FILTROS TERMINAL / USUARIO
+       =========================== */
     const selTerminal = document.getElementById("filtroTerminal");
     const selUsuario  = document.getElementById("filtroUsuario");
 
-    // Guardamos todas las opciones originales de usuario
-    const allUsuarios = Array.from(selUsuario.querySelectorAll("option[data-terminal]"));
+    if (selTerminal && selUsuario) {
+        // Guardamos todas las opciones originales de usuario
+        const allUsuarios = Array.from(selUsuario.querySelectorAll("option[data-terminal]"));
 
-    // --- FILTRAR USUARIOS SEGÚN TERMINAL ---
-    selTerminal.addEventListener("change", () => {
-        const term = selTerminal.value;
-        const selectedUser = selUsuario.value;  // conservar usuario seleccionado si coincide
+        // --- FILTRAR USUARIOS SEGÚN TERMINAL ---
+        selTerminal.addEventListener("change", () => {
+            const term = selTerminal.value;
+            const selectedUser = selUsuario.value;  // conservar usuario seleccionado si coincide
 
-        // Limpiamos opciones actuales (salvo "Todos")
-        selUsuario.querySelectorAll("option[data-terminal]").forEach(op => op.remove());
+            // Limpiamos opciones actuales (salvo "Todos")
+            selUsuario.querySelectorAll("option[data-terminal]").forEach(op => op.remove());
 
-        // Agregamos solo los usuarios del terminal elegido
-        allUsuarios.forEach(op => {
-            if (term === "" || op.dataset.terminal === term) {
-                selUsuario.appendChild(op);
+            // Agregamos solo los usuarios del terminal elegido
+            allUsuarios.forEach(op => {
+                if (term === "" || op.dataset.terminal === term) {
+                    selUsuario.appendChild(op);
+                }
+            });
+
+            // Mantener selección si existía
+            if (selectedUser && selUsuario.querySelector(`option[value="${selectedUser}"]`)) {
+                selUsuario.value = selectedUser;
+            } else {
+                selUsuario.value = "";
             }
         });
 
-        // Mantener selección si existía
-        if (selectedUser && selUsuario.querySelector(`option[value="${selectedUser}"]`)) {
+        // --- AUTOCOMPLETAR TERMINAL CUANDO SELECCIONO USUARIO ---
+        selUsuario.addEventListener("change", () => {
+            const selectedUser = selUsuario.value; // mantener selección
+            const userOpt = selUsuario.selectedOptions[0];
+
+            if (!userOpt || !userOpt.dataset.terminal) return;
+
+            const terminalId = userOpt.dataset.terminal;
+
+            // Autocompleta terminal
+            selTerminal.value = terminalId;
+
+            // Ahora filtramos usuarios según EL terminal asignado
+            selTerminal.dispatchEvent(new Event("change"));
+
+            // VOLVER a activar el usuario seleccionado
             selUsuario.value = selectedUser;
-        } else {
-            selUsuario.value = "";
+        });
+    }
+
+    /* ===========================
+       MODAL "VER RESPUESTA"
+       =========================== */
+    const modal = document.getElementById('modalRespuesta');
+    const closeBtn = document.getElementById('cerrarModalRespuesta');
+    const textoRespuesta = document.getElementById('textoRespuesta');
+    const zonaEvidencia = document.getElementById('zonaEvidenciaRespuesta');
+    const fechaSpan = document.getElementById('fechaRespuesta');   // 👈 span de la fecha
+    const idField = document.getElementById('idIncidenciaEstado');
+
+    // abrir modal al hacer click en "Ver respuesta"
+    document.querySelectorAll('.btn-respuesta').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const texto = btn.dataset.respuesta || '—';
+            const evidencia = btn.dataset.evidencia || '';
+            const id = btn.dataset.id || '';
+            const fecha = btn.dataset.fechaRespuesta || '—';  // 👈 viene del data-fecha-respuesta
+
+            if (textoRespuesta) textoRespuesta.textContent = texto;
+            if (idField) idField.value = id;
+            if (fechaSpan) fechaSpan.textContent = fecha;
+
+            if (zonaEvidencia) {
+                if (evidencia) {
+                    if (/\.(jpg|jpeg|png|gif|webp)$/i.test(evidencia)) {
+                        zonaEvidencia.innerHTML =
+                          `<img src="${evidencia}" style="max-width:100%; border-radius:8px;">`;
+                    } else {
+                        zonaEvidencia.innerHTML =
+                          `<a href="${evidencia}" target="_blank">Ver archivo</a>`;
+                    }
+                } else {
+                    zonaEvidencia.textContent = "—";
+                }
+            }
+
+            if (modal) modal.style.display = "flex";
+        });
+    });
+
+    // cerrar con la X
+    if (closeBtn && modal) {
+        closeBtn.addEventListener('click', () => {
+            modal.style.display = "none";
+        });
+    }
+
+    // cerrar haciendo click fuera del cuadro blanco
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.style.display = "none";
+            }
+        });
+    }
+
+    // cerrar con tecla ESC
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
+            modal.style.display = 'none';
         }
     });
-
-
-    // --- AUTOCOMPLETAR TERMINAL CUANDO SELECCIONO USUARIO ---
-    selUsuario.addEventListener("change", () => {
-
-        const selectedUser = selUsuario.value; // mantener selección
-        const userOpt = selUsuario.selectedOptions[0];
-
-        if (!userOpt || !userOpt.dataset.terminal) return;
-
-        const terminalId = userOpt.dataset.terminal;
-
-        // Autocompleta terminal
-        selTerminal.value = terminalId;
-
-        // Ahora filtramos usuarios según EL terminal asignado
-        selTerminal.dispatchEvent(new Event("change"));
-
-        // VOLVER a activar el usuario seleccionado
-        selUsuario.value = selectedUser;
-    });
-
 });
 </script>
+
+
+
+
+
+
 
 
 <!-- MODAL PARA REGISTRAR INCIDENCIA -->
@@ -775,6 +883,66 @@ document.addEventListener("DOMContentLoaded", () => {
 
   </div>
 </div>
+
+
+<!-- MODAL VER RESPUESTA-->
+
+
+<div id="modalRespuesta" style="
+    display:none; 
+    position:fixed; 
+    inset:0; 
+    background:rgba(0,0,0,0.7); 
+    z-index:9999; 
+    justify-content:center; 
+    align-items:center;">
+    
+    <div style="background:white; padding:20px; border-radius:10px; width:480px; position:relative;">
+        
+        <button id="cerrarModalRespuesta"
+                style="position:absolute; top:10px; right:10px; background:#eee; border:none; border-radius:4px;">
+            ✕
+        </button>
+
+        <h3 style="margin-bottom:8px;">Respuesta del administrador</h3>
+
+        <p id="textoRespuesta" style="white-space:pre-wrap;"></p>
+
+        <h4>Evidencia enviada:</h4>
+        <div id="zonaEvidenciaRespuesta">
+            —
+        </div>
+
+        <p>
+        <strong>Fecha de respuesta:</strong>
+        <span id="fechaRespuesta">—</span>
+        </p>
+
+        <h4 style="margin-top:20px;">Actualizar estado:</h4>
+
+        <form method="post" action="{% url 'actualizar_estado_control_interno' %}">
+            {% csrf_token %}
+            <input type="hidden" name="id_incidencia" id="idIncidenciaEstado">
+
+            <select name="nuevo_estado" required>
+                <option value="">Seleccione...</option>
+                <option value="resuelto">Resuelto</option>
+                <option value="observado">Observado</option>
+            </select>
+
+            <button type="submit"
+                    style="margin-left:10px; background:#0d9488; color:white; padding:6px 10px; border:none; border-radius:6px;">
+                Guardar
+            </button>
+        </form>
+    </div>
+</div>
+
+
+
+
+
+
 {% endblock %}
 
 

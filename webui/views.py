@@ -227,6 +227,7 @@ def panel_control_interno(request):
         evidencia = inc.evidencia.url if inc.evidencia else ""
 
         rows.append({
+            "id_incidencia": inc.id_incidencia,  # 👈 NECESARIO PARA EL POST
             "fecha": inc.fecha_incidencia,
             "nombre": bc.nombre if bc else "—",
             "usuario": bc.usuario if bc else "—",
@@ -237,6 +238,10 @@ def panel_control_interno(request):
             "motivo": inc.motivo or "—",
             "evidencia": evidencia,
             "fecha_revision": inc.fecha_revision,
+            "solucion_admin": inc.solucion_admin or "",  # 👈 para el Ver respuesta
+            "evidencia_solucion": (
+                inc.evidencia_solucion.url if getattr(inc, "evidencia_solucion", None) else ""
+            ),  # 👈 evidencia de solución
         })
 
     # ==========================
@@ -736,3 +741,27 @@ def resolver_incidencia(request):
 
     messages.success(request, 'La incidencia fue actualizada correctamente.')
     return redirect('panel_admin_terminal')
+
+
+
+
+
+
+@require_POST
+def actualizar_estado_control_interno(request):
+    inc_id = request.POST.get('id_incidencia')
+    nuevo_estado = request.POST.get('nuevo_estado')
+
+    incidencia = get_object_or_404(Incidencia, pk=inc_id)
+
+    # Control interno valida los estados finales
+    if nuevo_estado == "resuelto":
+        incidencia.estado = "resuelto"
+    elif nuevo_estado == "observado":
+        incidencia.estado = "observado"
+
+    
+    incidencia.save()
+
+    messages.success(request, "Estado actualizado correctamente.")
+    return redirect("panel_control_interno")
