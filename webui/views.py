@@ -11,6 +11,8 @@ from django.db.models import Q, Count, Case, When, IntegerField
 from datetime import date
 from django.core.paginator import Paginator, EmptyPage
 
+from incidencias.models import Terminal
+
 
 from django.utils import timezone
 from django.urls import reverse
@@ -21,7 +23,8 @@ import io
 from django.http import HttpResponse
 from openpyxl import Workbook
 from django.db.models import Q
-    
+
+
 def _require_session(request):
     """Redirect to login si no hay sesión."""
     if not request.session.get('uid'):
@@ -478,29 +481,74 @@ def panel_admin_sistema(request):
     if not request.session.get('uid'):
         return redirect('login')
 
-    # 🔹 Roles que SÍ se muestran en el dashboard
-    ROLES_ADMIN = ['admin_sistema', 'admin_terminal', 'control_interno']
+    # 2) Crear / Actualizar / Eliminar usuario (POST desde el modal)
+    if request.method == 'POST':
+        accion = (request.POST.get('accion') or 'create').lower()
+        id_usuario = request.POST.get('id_usuario')
 
-    # 2) Query base de usuarios (solo roles administradores)
+        nombre = (request.POST.get('nombre') or '').strip()
+        usuario_login = (request.POST.get('usuario_login') or '').strip()
+        contrasena = (request.POST.get('contrasena') or '').strip()
+        rol = (request.POST.get('rol') or '').strip()
+        activo = bool(request.POST.get('activo'))
+        terminal_id = request.POST.get('id_terminal') or None
+
+        # ---- Eliminar ----
+        if accion == 'delete' and id_usuario:
+            Usuario.objects.filter(pk=id_usuario).delete()
+            return redirect('panel_admin_sistema')
+
+        # ---- Crear / Actualizar ----
+        if nombre and usuario_login and rol:
+            if accion == 'update' and id_usuario:
+                try:
+                    u = Usuario.objects.get(pk=id_usuario)
+                except Usuario.DoesNotExist:
+                    return redirect('panel_admin_sistema')
+            else:
+                u = Usuario()
+                # Fecha de ingreso SOLO cuando se crea
+                if hasattr(u, 'fecha_ingreso'):
+                    u.fecha_ingreso = timezone.now().date()
+
+            u.nombre = nombre
+            u.usuario_login = usuario_login
+            # Solo cambio contraseña si escribes algo
+            if contrasena:
+                u.contrasena = contrasena
+            u.rol = rol
+            # Si tu modelo no tiene campo activo, bórralo de aquí
+            if hasattr(u, 'activo'):
+                u.activo = activo
+            if terminal_id:
+                u.id_terminal_id = terminal_id
+            else:
+                u.id_terminal_id = None
+
+            u.save()
+
+        # Siempre volvemos al panel para evitar reenvíos
+        return redirect('panel_admin_sistema')
+
+    # 3) GET normal: listar usuarios
     qs = (
         Usuario.objects
-        .select_related('id_terminal')          # FK a terminal
-        .filter(rol__in=ROLES_ADMIN)           # ⬅️ solo estos roles
+        .select_related('id_terminal')
         .order_by('id_usuario')
     )
 
-    # 3) (Opcional) Búsqueda rápida ?q=
+    # Búsqueda rápida ?q=
     q = (request.GET.get('q') or '').strip()
     if q:
         qs = qs.filter(
             Q(nombre__icontains=q) |
             Q(usuario_login__icontains=q) |
             Q(rol__icontains=q) |
-            Q(id_terminal__nombre__icontains=q) |
+            Q(id_terminal__nombre_terminal__icontains=q) |
             Q(id_terminal__icontains=q)
         )
 
-    # 4) Paginación
+    # Paginación
     paginator = Paginator(qs, 12)
     try:
         page_num = int(request.GET.get('page', 1))
@@ -511,42 +559,39 @@ def panel_admin_sistema(request):
     except EmptyPage:
         page_obj = paginator.page(1)
 
-    # 5) Adaptar filas al template
+    # Adaptar filas al template
     usuarios_rows = []
     for u in page_obj.object_list:
-        # fecha ingreso (usa el campo que tengas)
-        fecha_ing = getattr(u, 'fecha_ingreso', None) or getattr(u, 'fecha_creacion', None)
+        fecha_ing = getattr(u, 'fecha_ingreso', None)
 
-        # terminal
         term_obj = getattr(u, 'id_terminal', None)
-        term_name = getattr(term_obj, 'nombre', None) if term_obj else None
+        term_name = getattr(term_obj, 'nombre_terminal', None) if term_obj else None
         if not term_name:
             term_name = term_obj or '—'
 
-        # activo
-        activo_val = getattr(u, 'activo', None)
-        
-        if activo_val is None:
-            
-            estado = (getattr(u, 'estado', '') or '').lower()
-            activo_bool = estado in ('activo', 'activa', '1', 'true', 'sí', 'si')
-        else:
-            activo_bool = bool(activo_val)
+        activo_val = getattr(u, 'activo', True) if hasattr(u, 'activo') else True
+        activo_bool = bool(activo_val)
 
         usuarios_rows.append({
+            'id': getattr(u, 'id_usuario', None),
             'fecha_ingreso': fecha_ing,
             'nombre': getattr(u, 'nombre', '—'),
             'usuario_login': getattr(u, 'usuario_login', '—'),
             'rol': getattr(u, 'rol', '—'),
             'terminal': term_name,
+            'terminal_id': getattr(u, 'id_terminal_id', '') or '',
             'activo': activo_bool,
+            'activo_raw': '1' if activo_bool else '0',
+            'contrasena': getattr(u, 'contrasena', '') or '',
         })
 
-    # 6) Contexto para el template
+    # 4) Contexto
     context = {
         'usuario_nombre': request.session.get('nombre', 'Usuario'),
         'usuarios': usuarios_rows,
         'page_obj': page_obj,
+        'terminales': Terminal.objects.all().order_by('nombre_terminal'),
+        'hoy': timezone.now().date(),
     }
     return render(request, 'admin_sistema_dashboard.html', context)
 
@@ -776,3 +821,329 @@ def actualizar_estado_control_interno(request):
 
     messages.success(request, "Estado actualizado correctamente.")
     return redirect("panel_control_interno")
+
+
+
+
+def panel_incidencias(request):
+    maybe_redirect = _require_session(request)
+    if maybe_redirect:
+        return maybe_redirect
+
+    # ==========================
+    # 🔍 Filtros GET
+    # ==========================
+
+    # Fecha incidencia
+    f1 = request.GET.get("f1")   # desde
+    f2 = request.GET.get("f2")   # hasta
+
+    # Fecha revisión
+    r1 = request.GET.get("r1")
+    r2 = request.GET.get("r2")
+
+    terminal_filter = request.GET.get("terminal")
+    estado_filter = request.GET.get("estado")
+    usuario_filter = (request.GET.get("usuario") or "").strip()
+    motivo_filter = (request.GET.get("motivo") or "").strip()
+    ci_filter = (request.GET.get("ci") or "").strip()
+
+    # ==========================
+    # Base Query
+    # ==========================
+
+    qs = (
+        Incidencia.objects
+        .select_related("id_bc", "id_usuario", "id_bc__id_terminal")
+        .order_by("-fecha_revision", "-id_incidencia")
+    )
+
+    # ==========================
+    # 🎯 Filtro FECHA INCIDENCIA
+    # ==========================
+    if f1 and f2:
+        try:
+            d1 = date.fromisoformat(f1)
+            d2 = date.fromisoformat(f2)
+            if d1 > d2:
+                d1, d2 = d2, d1
+            qs = qs.filter(fecha_incidencia__range=(d1, d2))
+        except:
+            pass
+
+    # ==========================
+    # 🎯 Filtro FECHA REVISIÓN
+    # ==========================
+    if r1 and r2:
+        try:
+            d1 = date.fromisoformat(r1)
+            d2 = date.fromisoformat(r2)
+            if d1 > d2:
+                d1, d2 = d2, d1
+            qs = qs.filter(fecha_revision__range=(d1, d2))
+        except:
+            pass
+
+    # ==========================
+    # 🎯 Filtro Terminal
+    # ==========================
+    if terminal_filter:
+        qs = qs.filter(id_bc__id_terminal_id=terminal_filter)
+
+    # ==========================
+    # 🎯 Filtro Estado NORMALIZADO
+    # ==========================
+    if estado_filter:
+        # viene como "Conforme", "Observado", "Pendiente", "Resuelto"
+        estado_filter_norm = (estado_filter or "").lower().replace("ó", "o")
+
+        if estado_filter_norm.startswith("observ"):
+            qs = qs.filter(estado__icontains="observ")
+        elif estado_filter_norm.startswith("pend"):
+            qs = qs.filter(estado__icontains="pendiente")
+        elif estado_filter_norm.startswith("resu"):
+            qs = qs.filter(estado__icontains="resuelto")
+        elif estado_filter_norm.startswith("conf"):
+            qs = qs.filter(estado__icontains="conforme")
+
+
+    # ==========================
+    # 🎯 Usuario boletero/cajero
+    # ==========================
+    if usuario_filter:
+        qs = qs.filter(
+            Q(id_bc__nombre__icontains=usuario_filter) |
+            Q(id_bc__usuario__icontains=usuario_filter)
+        )
+
+ 
+
+    # ==========================
+    # 🎯 Control interno
+    # ==========================
+    if ci_filter:
+        qs = qs.filter(id_usuario__usuario_login__icontains=ci_filter)
+
+
+    # ==========================
+    #  LIMIT TOP 100
+    # ==========================
+    qs = qs[:100]
+
+    # ==========================
+    #  Paginación
+    # ==========================
+    paginator = Paginator(qs, 20)
+    page_num = request.GET.get("page", 1)
+
+    try:
+        page_obj = paginator.page(page_num)
+    except:
+        page_obj = paginator.page(1)
+
+    # ==========================
+    #  Construcción de tabla rows
+    # ==========================
+    rows = []
+
+    for inc in page_obj.object_list:
+
+        bc = inc.id_bc
+        term = bc.id_terminal if bc else None
+
+        # NORMALIZAR ESTADO (4 estados posibles)
+        estado_val = (inc.estado or "").lower().replace("ó", "o")
+
+        if estado_val.startswith("observ"):
+            estado = "Observado"
+        elif estado_val.startswith("pend"):
+            estado = "Pendiente"
+        elif estado_val.startswith("resu"):
+            estado = "Resuelto"
+        else:
+            estado = "Conforme"
+
+
+        evidencia = inc.evidencia.url if inc.evidencia else ""
+
+        rows.append({
+            "id_incidencia": inc.id_incidencia,  # 👈 NECESARIO PARA EL POST
+            "fecha": inc.fecha_incidencia,
+            "nombre": bc.nombre if bc else "—",
+            "usuario": bc.usuario if bc else "—",
+            "cargo": bc.cargo if bc else "—",
+            "terminal": term.nombre_terminal if term else "—",
+            "control_interno": inc.id_usuario.nombre if inc.id_usuario else "—",
+            "estado": estado,
+            "motivo": inc.motivo or "—",
+            "evidencia": evidencia,
+            "fecha_revision": inc.fecha_revision,
+            "solucion_admin": inc.solucion_admin or "",  # 👈 para el Ver respuesta
+            "evidencia_solucion": (
+                inc.evidencia_solucion.url if getattr(inc, "evidencia_solucion", None) else ""
+            ),  # 👈 evidencia de solución
+        })
+
+    # ==========================
+    #  Preservar filtros para paginación
+    # ==========================
+    preserved = ""
+    for k in ("f1", "f2", "r1", "r2", "terminal", "estado", "usuario", "motivo", "ci"):
+        v = request.GET.get(k)
+        if v:
+            preserved += f"&{k}={v}"
+
+    # ==========================
+    # Contexto final
+    # ==========================
+    context = {
+        "usuario_nombre": request.session.get("nombre", "Usuario"),
+        "terminal_actual": request.session.get("terminal") or "—",
+
+        "rows": rows,
+        "page_obj": page_obj,
+        "preserved": preserved,
+
+        # reutilizamos valores para mantenerlos en los inputs
+        "f1": f1 or "",
+        "f2": f2 or "",
+        "r1": r1 or "",
+        "r2": r2 or "",
+        "terminal_selected": terminal_filter or "",
+        "estado": estado_filter or "",
+        "usuario": usuario_filter or "",
+        "motivo": motivo_filter or "",
+        "ci": ci_filter or "",
+
+        "boleteros": BoleteroCajero.objects.all(),
+        "terminales": Terminal.objects.all().order_by("id_terminal"),
+
+        # NUEVOS SELECTS
+        "usuarios_bc": BoleteroCajero.objects.filter(estado="activo").order_by("usuario"),
+        "usuarios_ci": Usuario.objects.filter(rol="control_interno").order_by("nombre"),
+            
+        "boleteros": BoleteroCajero.objects.all(),
+        "terminales": Terminal.objects.all().order_by("id_terminal"),
+        "control_internos": Usuario.objects.filter(rol="control_interno"),
+        
+        
+    }
+    return render(request, 'admin_incidencias_dashboard.html', context)
+
+
+
+
+
+
+
+
+
+def panel_boleteros(request):
+    # 1) Validar sesión
+    if not request.session.get('uid'):
+        return redirect('login')
+
+    # 2) Procesar POST (crear / editar / eliminar)
+    if request.method == 'POST':
+        accion = request.POST.get('accion')
+
+        # -------- CREAR --------
+        if accion == 'crear':
+            nombre = (request.POST.get('nombre') or '').strip()
+            usuario = (request.POST.get('usuario') or '').strip()
+            cargo = (request.POST.get('cargo') or '').strip()
+            estado = (request.POST.get('estado') or '').strip()
+            terminal_id = request.POST.get('id_terminal') or None
+
+            if nombre and usuario and cargo and estado:
+                bc = BoleteroCajero(
+                    nombre=nombre,
+                    usuario=usuario,
+                    cargo=cargo,
+                    estado=estado,
+                )
+                if terminal_id:
+                    bc.id_terminal_id = terminal_id
+                bc.save()
+
+            return redirect('panel_boleteros')
+
+        # -------- EDITAR --------
+        if accion == 'editar':
+            id_bc = request.POST.get('id_bc')
+            bc = get_object_or_404(BoleteroCajero, pk=id_bc)
+
+            bc.nombre = (request.POST.get('nombre') or '').strip()
+            bc.usuario = (request.POST.get('usuario') or '').strip()
+            bc.cargo = (request.POST.get('cargo') or '').strip()
+            bc.estado = (request.POST.get('estado') or '').strip()
+
+            terminal_id = request.POST.get('id_terminal') or None
+            if terminal_id:
+                bc.id_terminal_id = terminal_id
+            else:
+                bc.id_terminal = None
+
+            bc.save()
+            return redirect('panel_boleteros')
+
+        # -------- ELIMINAR --------
+        if accion == 'eliminar':
+            id_bc = request.POST.get('id_bc')
+            bc = get_object_or_404(BoleteroCajero, pk=id_bc)
+            bc.delete()
+            return redirect('panel_boleteros')
+
+    # 3) GET normal: listar boleteros/cajeros
+    qs = (
+        BoleteroCajero.objects
+        .select_related('id_terminal')
+        .order_by('nombre')
+    )
+
+    # Búsqueda rápida opcional ?q=
+    q = (request.GET.get('q') or '').strip()
+    if q:
+        qs = qs.filter(
+            Q(nombre__icontains=q) |
+            Q(usuario__icontains=q) |
+            Q(cargo__icontains=q) |
+            Q(estado__icontains=q) |
+            Q(id_terminal__nombre_terminal__icontains=q)
+        )
+
+    # Paginación
+    paginator = Paginator(qs, 15)
+    try:
+        page_num = int(request.GET.get('page', 1))
+    except ValueError:
+        page_num = 1
+    try:
+        page_obj = paginator.page(page_num)
+    except EmptyPage:
+        page_obj = paginator.page(1)
+
+    filas = []
+    for b in page_obj.object_list:
+        term_obj = getattr(b, 'id_terminal', None)
+        term_name = getattr(term_obj, 'nombre_terminal', None) if term_obj else None
+        if not term_name:
+            term_name = term_obj or '—'
+
+        filas.append({
+            'id_bc': b.id_bc,
+            'nombre': b.nombre,
+            'usuario': b.usuario,
+            'cargo': b.cargo,
+            'estado': b.estado,
+            'terminal': term_name,
+        })
+
+    context = {
+        'usuario_nombre': request.session.get('nombre', 'Usuario'),
+        'boleteros_rows': filas,
+        'page_obj': page_obj,
+        'terminales': Terminal.objects.all().order_by('nombre_terminal'),
+        'hoy': timezone.now().date(),
+    }
+    return render(request, 'admin_boleteros_dashboard.html', context)

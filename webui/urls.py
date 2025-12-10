@@ -10,5 +10,5 @@ urlpatterns = [
     
     path('panel-admin-terminal/', views.panel_admin_terminal, name='panel_admin_terminal'),
     path('resolver-incidencia/', views.resolver_incidencia, name='resolver_incidencia'),
-      
+        
 ]

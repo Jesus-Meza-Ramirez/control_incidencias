@@ -8,6 +8,8 @@ from webui.views import (
     login_view, logout_view, dashboard_redirect,
     panel_control_interno, panel_admin_terminal, panel_admin_sistema, actualizar_estado_control_interno
 )
+from webui import views   
+
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -31,7 +33,10 @@ urlpatterns = [
     
     
     path("ci/estado/", actualizar_estado_control_interno, name="actualizar_estado_control_interno"),
-
+    
+    path("panel/incidencias/", views.panel_incidencias, name="panel_incidencias"),
+    
+    path("panel/boleteros/", views.panel_boleteros, name="panel_boleteros"),
     
     
 ]
