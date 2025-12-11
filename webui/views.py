@@ -98,6 +98,10 @@ def panel_control_interno(request):
     maybe_redirect = _require_session(request)
     if maybe_redirect:
         return maybe_redirect
+    
+    
+    uid = request.session.get("uid")  # id del usuario logueado
+    produccion_hoy = request.GET.get("produccion_hoy")
 
     # ==========================
     # 🔍 Filtros GET
@@ -186,6 +190,11 @@ def panel_control_interno(request):
         )
 
  
+ 
+    # 🎯 FILTRO: Producción hoy
+    if produccion_hoy and uid:
+        today = timezone.localdate()
+        qs = qs.filter(id_usuario_id=uid, fecha_revision=today)
 
     # ==========================
     # 🎯 Control interno
@@ -257,7 +266,7 @@ def panel_control_interno(request):
     #  Preservar filtros para paginación
     # ==========================
     preserved = ""
-    for k in ("f1", "f2", "r1", "r2", "terminal", "estado", "usuario", "motivo", "ci"):
+    for k in ("f1", "f2", "r1", "r2", "terminal", "estado", "usuario", "motivo", "ci", "produccion_hoy"):
         v = request.GET.get(k)
         if v:
             preserved += f"&{k}={v}"
@@ -622,6 +631,10 @@ def exportar_incidencias_excel(request):
     Genera un archivo xlsx con las incidencias según filtros GET.
     """
 
+    # ------- info de sesión (para producción hoy) -------
+    uid = request.session.get("uid")
+    produccion_hoy = request.GET.get("produccion_hoy")
+
     # ------- Leer filtros GET (mismos nombres que en el dashboard) -------
     f1 = request.GET.get("f1")    # fecha incidencia desde
     f2 = request.GET.get("f2")    # fecha incidencia hasta
@@ -630,8 +643,8 @@ def exportar_incidencias_excel(request):
     terminal_filter = request.GET.get("terminal")
     estado_filter = request.GET.get("estado")
     usuario_filter = (request.GET.get("usuario") or "").strip()
-    motivo_filter = (request.GET.get("motivo") or "").strip()
-    ci_filter = (request.GET.get("ci") or "").strip()
+    motivo_filter  = (request.GET.get("motivo") or "").strip()
+    ci_filter      = (request.GET.get("ci") or "").strip()
 
     # ------- Query base -------
     qs = (
@@ -640,7 +653,7 @@ def exportar_incidencias_excel(request):
         .order_by("-fecha_revision", "-id_incidencia")
     )
 
-    # ------- Aplicar filtros (igual que en panel) -------
+    # ------- Aplicar filtros (igual que en panel_control_interno) -------
     if f1 and f2:
         try:
             d1 = date.fromisoformat(f1)
@@ -664,8 +677,18 @@ def exportar_incidencias_excel(request):
     if terminal_filter:
         qs = qs.filter(id_bc__id_terminal_id=terminal_filter)
 
+    # 🔹 mismo criterio de estado que en el panel
     if estado_filter:
-        qs = qs.filter(estado__iexact=estado_filter)
+        estado_filter_norm = (estado_filter or "").lower().replace("ó", "o")
+
+        if estado_filter_norm.startswith("observ"):
+            qs = qs.filter(estado__icontains="observ")
+        elif estado_filter_norm.startswith("pend"):
+            qs = qs.filter(estado__icontains="pendiente")
+        elif estado_filter_norm.startswith("resu"):
+            qs = qs.filter(estado__icontains="resuelto")
+        elif estado_filter_norm.startswith("conf"):
+            qs = qs.filter(estado__icontains="conforme")
 
     if usuario_filter:
         qs = qs.filter(
@@ -677,17 +700,23 @@ def exportar_incidencias_excel(request):
         qs = qs.filter(motivo__icontains=motivo_filter)
 
     if ci_filter:
-        qs = qs.filter(id_usuario__nombre__icontains=ci_filter)
+        qs = qs.filter(id_usuario__usuario_login__icontains=ci_filter)
 
-    # Opcional: limitar el número de filas a exportar (evita перегрузку)
+    # 🔹 Producción hoy
+    if produccion_hoy and uid:
+        today = timezone.localdate()
+        qs = qs.filter(id_usuario_id=uid, fecha_revision=today)
+
+    # Limitar filas
     MAX_ROWS = 5000
     qs = qs[:MAX_ROWS]
 
-    # ------- Construir workbook con openpyxl -------
+    # ------- Construir workbook -------
     wb = Workbook()
     ws = wb.active
     ws.title = "Incidencias"
 
+    # 👇 NUEVOS HEADERS (sin evidencia, pero con respuesta y fecha respuesta)
     headers = [
         "Fecha de incidencia",
         "Nombre (boletero/cajero)",
@@ -698,36 +727,44 @@ def exportar_incidencias_excel(request):
         "Estado",
         "Motivo",
         "Fecha de revisión",
-        "Evidencia (archivo)"
+        "Respuesta administrador",
+        "Fecha soluciòn",
     ]
     ws.append(headers)
 
     # rellenar filas
     for inc in qs:
         bc = getattr(inc, "id_bc", None)
-        bc_nombre = getattr(bc, "nombre", "") if bc else ""
+        bc_nombre  = getattr(bc, "nombre", "")  if bc else ""
         bc_usuario = getattr(bc, "usuario", "") if bc else ""
-        bc_cargo = getattr(bc, "cargo", "") if bc else ""
-        term_obj = getattr(bc, "id_terminal", None)
-        terminal_name = getattr(term_obj, "nombre_terminal", "") if term_obj else (getattr(bc, "id_terminal", "") if bc else "")
+        bc_cargo   = getattr(bc, "cargo", "")   if bc else ""
+        term_obj   = getattr(bc, "id_terminal", None)
+        terminal_name = getattr(term_obj, "nombre_terminal", "") if term_obj else (
+            getattr(bc, "id_terminal", "") if bc else ""
+        )
 
         control_interno = getattr(inc, "id_usuario", None)
         control_interno_name = getattr(control_interno, "nombre", "") if control_interno else ""
 
-        # Normalizar estado (misma lógica que en tu vista)
-        estado_val = (getattr(inc, "estado", "") or "").strip()
-        estado_norm = estado_val.lower()
-        if estado_norm in ('observacion', 'observación', 'observado', 'observada', 'observac', 'obs'):
-            estado_text = 'Observado'
+        # normalizar estado = igual que en el panel
+        estado_val = (getattr(inc, "estado", "") or "").lower().replace("ó", "o")
+        if estado_val.startswith("observ"):
+            estado_text = "Observado"
+        elif estado_val.startswith("pend"):
+            estado_text = "Pendiente"
+        elif estado_val.startswith("resu"):
+            estado_text = "Resuelto"
         else:
-            estado_text = 'Conforme'
+            estado_text = "Conforme"
 
         motivo = getattr(inc, "motivo", "") or ""
-        evidencia_val = getattr(inc, "evidencia", None)
-        evidencia = evidencia_val.name if evidencia_val else ""
 
         fecha_incid = getattr(inc, "fecha_incidencia", None)
-        fecha_rev = getattr(inc, "fecha_revision", None)
+        fecha_rev   = getattr(inc, "fecha_revision", None)
+
+        # 👇 NUEVOS CAMPOS
+        solucion_admin = getattr(inc, "solucion_admin", "") or ""
+        fecha_resp_obj = getattr(inc, "fecha_solucion", None)  
 
         row = [
             fecha_incid.isoformat() if fecha_incid else "",
@@ -739,16 +776,17 @@ def exportar_incidencias_excel(request):
             estado_text,
             motivo,
             fecha_rev.isoformat() if fecha_rev else "",
-            evidencia
+            solucion_admin,
+            fecha_resp_obj.isoformat() if fecha_resp_obj else "",
         ]
         ws.append(row)
 
-    # Opcional: ajustar ancho columnas (simple)
-    column_widths = [18, 30, 15, 12, 14, 22, 12, 40, 18, 30]
+    # Ajustar anchos (11 columnas ahora)
+    column_widths = [18, 30, 15, 12, 14, 22, 12, 40, 18, 40, 22]
     for i, width in enumerate(column_widths, start=1):
         ws.column_dimensions[chr(64 + i)].width = width
 
-    # Guardar workbook en memoria y devolver como response
+    # Guardar workbook en memoria y devolver
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)
@@ -760,6 +798,7 @@ def exportar_incidencias_excel(request):
     )
     response["Content-Disposition"] = f'attachment; filename="{filename}"'
     return response
+
 
 
 
