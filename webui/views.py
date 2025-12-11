@@ -33,11 +33,12 @@ def _require_session(request):
 
 @require_http_methods(["GET", "POST"])
 def login_view(request):
-    if request.session.get('uid'):
+    # 🚫 SOLO redirigimos a home si es GET y ya hay sesión
+    if request.method == "GET" and request.session.get('uid'):
         return redirect('home')
 
     if request.method == "POST":
-        usuario = (request.POST.get('usuario') or '').strip()   # <- usa el name del input
+        usuario = (request.POST.get('usuario') or '').strip()
         contrasena = (request.POST.get('contrasena') or '').strip()
 
         user = Usuario.objects.filter(
@@ -48,12 +49,17 @@ def login_view(request):
         if not user:
             messages.error(request, "Usuario o contraseña incorrectos.")
         else:
+            # Opcional pero recomendable: limpiar sesión anterior
+            request.session.flush()
+
             request.session['uid']      = user.id_usuario
             request.session['nombre']   = user.nombre
             request.session['rol']      = user.rol
             request.session['terminal'] = user.id_terminal_id  # puede ser None
+
             return redirect('home')
 
+    # Si es GET sin sesión, o POST con error → mostrar login
     return render(request, 'login_full.html')
 
 
