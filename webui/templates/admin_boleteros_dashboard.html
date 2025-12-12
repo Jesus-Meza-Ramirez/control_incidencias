@@ -165,6 +165,7 @@
         <table>
           <thead>
             <tr>
+              <th>Fecha creación</th>
               <th>Nombre</th>
               <th>Usuario</th>
               <th>Cargo</th>
@@ -176,6 +177,8 @@
           <tbody>
             {% for b in boleteros_rows %}
             <tr>
+              <td>{{ b.fecha_creacion|date:"d-m-Y" }}</td>
+
               <td>{{ b.nombre }}</td>
               <td>{{ b.usuario }}</td>
               <td>{{ b.cargo }}</td>

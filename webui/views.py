@@ -1100,6 +1100,7 @@ def panel_boleteros(request):
                     usuario=usuario,
                     cargo=cargo,
                     estado=estado,
+                    fecha_creacion=timezone.localtime() 
                 )
                 if terminal_id:
                     bc.id_terminal_id = terminal_id
@@ -1176,6 +1177,7 @@ def panel_boleteros(request):
             'cargo': b.cargo,
             'estado': b.estado,
             'terminal': term_name,
+            'fecha_creacion': b.fecha_creacion,
         })
 
     context = {

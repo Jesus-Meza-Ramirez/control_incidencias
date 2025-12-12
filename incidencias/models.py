@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils import timezone
 
 class Terminal(models.Model):
     id_terminal = models.CharField(max_length=10, primary_key=True, db_column='id_terminal')
@@ -25,7 +26,7 @@ class BoleteroCajero(models.Model):
         db_column='id_terminal',
         related_name='boleteros'           # útil para consultas
     )
-
+    fecha_creacion = models.DateTimeField(db_column="fecha_creacion", null=True, blank=True)
     def __str__(self):
         return self.nombre
 
