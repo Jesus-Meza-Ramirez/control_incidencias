@@ -260,6 +260,7 @@ def panel_control_interno(request):
             "evidencia_solucion": (
                 inc.evidencia_solucion.url if getattr(inc, "evidencia_solucion", None) else ""
             ),  # 👈 evidencia de solución
+            "fecha_solucion": getattr(inc, "fecha_solucion", None),
         })
 
     # ==========================
@@ -821,22 +822,15 @@ def resolver_incidencia(request):
     # Guardar solución
     incidencia.solucion_admin = solucion_txt
 
-    # Fecha de solución: la que vino del form o hoy
-    if fecha_sol_str:
-        try:
-            incidencia.fecha_solucion = date.fromisoformat(fecha_sol_str)
-        except ValueError:
-            incidencia.fecha_solucion = timezone.now().date()
-    else:
-        incidencia.fecha_solucion = timezone.now().date()
+    # ⭐ FECHA DE SOLUCIÓN → FECHA LOCAL DE PERÚ (CORRECCIÓN)
+    incidencia.fecha_solucion = timezone.localdate()
 
     # Evidencia de solución (si adjuntan)
     if evidencia_file:
         incidencia.evidencia_solucion = evidencia_file
 
-    # Marcar como conforme y registrar revisión
+    # Actualizar estado
     incidencia.estado = 'pendiente'
-    
 
     incidencia.save()
 

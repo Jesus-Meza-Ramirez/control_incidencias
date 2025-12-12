@@ -591,17 +591,59 @@
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-    // --- abrir / cerrar modal ---
-    const abrir = document.getElementById("btnAbrirIncidencia");
+    // --- abrir / cerrar modal registrar incidencia ---
+    const abrir  = document.getElementById("btnAbrirIncidencia");
     const cerrar = document.getElementById("cerrarModal");
     const modal  = document.getElementById("modalIncidencia");
+
+    // --- campos del modal: estado / motivo / evidencia ---
+    const estado    = document.getElementById("estadoIncidencia");
+    const motivo    = document.getElementById("motivoIncidencia");
+    const evidencia = document.getElementById("evidenciaIncidencia");
+
+    // función que activa/desactiva motivo + evidencia
+    function actualizarCamposEstado() {
+        if (!estado || !motivo || !evidencia) return;
+
+        const value = (estado.value || "").toLowerCase();
+        const esObservado = value.startsWith("observ");
+
+        if (esObservado) {
+            // estado = Observación → se habilitan
+            motivo.disabled = false;
+            evidencia.disabled = false;
+            motivo.style.backgroundColor = "white";
+            evidencia.style.backgroundColor = "white";
+            motivo.style.cursor = "text";
+            evidencia.style.cursor = "pointer";
+        } else {
+            // estado = Conforme → se bloquean y se limpian
+            motivo.disabled = true;
+            evidencia.disabled = true;
+            motivo.value = "";
+            evidencia.value = "";
+            motivo.style.backgroundColor = "#e5e7eb";
+            evidencia.style.backgroundColor = "#e5e7eb";
+            motivo.style.cursor = "not-allowed";
+            evidencia.style.cursor = "not-allowed";
+        }
+    }
+
+    // configurar comportamiento inicial y cambio de estado
+    if (estado) {
+        actualizarCamposEstado(); // al cargar
+        estado.addEventListener("change", actualizarCamposEstado);
+    }
 
     if (abrir && modal) {
         abrir.addEventListener("click", function (e) {
             e.preventDefault();
-            // reseteamos el formulario cada vez que se abre
             const form = modal.querySelector("form");
-            if (form) form.reset();
+            if (form) form.reset();   // limpia valores
+
+            // después del reset, el select vuelve a "Conforme"
+            actualizarCamposEstado();
+
             modal.style.display = "block";
         });
     }
@@ -726,13 +768,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (zonaEvidencia) {
                 if (evidencia) {
-                    if (/\.(jpg|jpeg|png|gif|webp)$/i.test(evidencia)) {
-                        zonaEvidencia.innerHTML =
-                          `<img src="${evidencia}" style="max-width:100%; border-radius:8px;">`;
-                    } else {
-                        zonaEvidencia.innerHTML =
-                          `<a href="${evidencia}" target="_blank">Ver archivo</a>`;
-                    }
+                    // Siempre abrir en otra pestaña, sin imagen embebida
+                    zonaEvidencia.innerHTML =
+                    `<a href="${evidencia}" target="_blank" rel="noopener">Ver archivo</a>`;
                 } else {
                     zonaEvidencia.textContent = "—";
                 }
@@ -836,7 +874,7 @@ document.addEventListener("DOMContentLoaded", () => {
               style="width:100%; margin-bottom:10px;">
         <option value="">-- Seleccione --</option>
         {% for b in boleteros %}
-          {# usamos el USUARIO como texto y guardamos su terminal en data-terminal #}
+          <!-- usamos el USUARIO como texto y guardamos su terminal en data-terminal -->
           <option value="{{ b.id_bc }}"
                   data-terminal="{{ b.id_terminal_id }}">
             {{ b.usuario }}
@@ -852,23 +890,41 @@ document.addEventListener("DOMContentLoaded", () => {
              required
              style="width:100%; margin-bottom:10px;">
 
-      <label>Motivo:</label>
-      <textarea name="motivo"
-                
-                style="width:100%; height:100px; margin-bottom:10px;"></textarea>
-
-      <label>Estado:</label>
-      <select name="estado"
-              
+      <!-- estado (debajo de la fecha) -->
+      <label for="estadoIncidencia">Estado:</label>
+      <select id="estadoIncidencia"
+              name="estado"
+              required
               style="width:100%; margin-bottom:10px;">
-        <option value="conforme">Conforme</option>
+        <option value="conforme" selected>Conforme</option>
         <option value="observado">Observación</option>
       </select>
 
-      <label>Evidencia (imagen / archivo):</label>
-      <input type="file"
+      <!-- motivo: se habilita solo si estado = Observación -->
+      <label for="motivoIncidencia">Motivo:</label>
+      <textarea id="motivoIncidencia"
+                name="motivo"
+                disabled
+                style="
+                  width:100%;
+                  height:100px;
+                  margin-bottom:10px;
+                  background:#e5e7eb;
+                  cursor:not-allowed;
+                "></textarea>
+
+      <!-- evidencia: se habilita solo si estado = Observación -->
+      <label for="evidenciaIncidencia">Evidencia (imagen / archivo):</label>
+      <input id="evidenciaIncidencia"
+             type="file"
              name="evidencia"
-             style="width:100%; margin-bottom:15px;">
+             disabled
+             style="
+               width:100%;
+               margin-bottom:15px;
+               background:#e5e7eb;
+               cursor:not-allowed;
+             ">
 
       <button type="submit"
               style="
@@ -891,6 +947,7 @@ document.addEventListener("DOMContentLoaded", () => {
 </div>
 
 
+
 <!-- MODAL VER RESPUESTA-->
 
 
@@ -899,7 +956,7 @@ document.addEventListener("DOMContentLoaded", () => {
     position:fixed; 
     inset:0; 
     background:rgba(0,0,0,0.7); 
-    z-index:9999; 
+    z-index:11000; 
     justify-content:center; 
     align-items:center;">
     

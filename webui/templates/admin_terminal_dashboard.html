@@ -419,7 +419,18 @@
 
 
 <!-- Modal evidencia -->
-<div id="evidenceModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:9999; align-items:center; justify-content:center; padding:24px;">
+<div id="evidenceModal"
+     style="
+        display:none;
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,.75);
+        z-index:11000;           /* 👈 más que el solutionModal */
+        align-items:center;
+        justify-content:center;
+        padding:24px;
+     ">
+
   <div style="position:relative; max-width:90vw; max-height:90vh;">
     <button id="closeEvidence"
             style="position:absolute; top:-12px; right:-12px; background:#fff; border:none; border-radius:999px; width:36px; height:36px; cursor:pointer; font-weight:700;">
@@ -525,105 +536,50 @@
       return `${year}-${month}-${day}`;
     }
 
-    // ====== MODAL EVIDENCIA (ya lo tenías) ======
-    const modal = document.getElementById('evidenceModal');
-    const img = document.getElementById('evidenceImg');
-    const btnX = document.getElementById('closeEvidence');
-    const IMG_EXT = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
-
-    function isImage(url) {
-      const u = (url || '').toLowerCase();
-      return IMG_EXT.some(ext => u.endsWith(ext));
-    }
-
-    function openModal(url) {
-      img.src = url;
-      modal.style.display = 'flex';
-    }
-
-    function closeModal() {
-      modal.style.display = 'none';
-      img.src = '';
-    }
-
-    if (btnX) btnX.addEventListener('click', closeModal);
-    if (modal) {
-      modal.addEventListener('click', (e) => {
-        if (e.target === modal) closeModal();
-      });
-    }
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
-        closeModal();
-      }
-    });
-
-    // Links "Ver" de la tabla principal
+    // ====== EVIDENCIAS: SIEMPRE NUEVA PESTAÑA ======
     document.querySelectorAll('.evidence-link').forEach(a => {
-      a.addEventListener('click', (e) => {
-        const url = a.dataset.url || a.href;
-        if (isImage(url)) {
-          e.preventDefault();
-          openModal(url);
-        } else {
-          a.setAttribute('target', '_blank');
-        }
-      });
+      const url = a.dataset.url || a.href;
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener';
     });
 
     // ====== MODAL SOLUCIÓN ======
-    const solutionModal = document.getElementById('solutionModal');
-    const closeSolutionBtn = document.getElementById('closeSolution');
-    const solutionForm = document.getElementById('solutionForm');
-    const incidenciaIdField = document.getElementById('incidenciaIdField');
-    const motivoText = document.getElementById('motivoText');
-    const fechaSolField = document.getElementById('fechaSolField');
-    const solutionEvidence = document.getElementById('solutionEvidence');
+    const solutionModal      = document.getElementById('solutionModal');
+    const closeSolutionBtn   = document.getElementById('closeSolution');
+    const solutionForm       = document.getElementById('solutionForm');
+    const incidenciaIdField  = document.getElementById('incidenciaIdField');
+    const motivoText         = document.getElementById('motivoText');
+    const fechaSolField      = document.getElementById('fechaSolField');
+    const solutionEvidence   = document.getElementById('solutionEvidence');
 
-    const solucionField = document.getElementById('solucionField');
-    const evidenciaSolField = document.getElementById('evidenciaSolField');
-    const clearSolutionBtn = document.getElementById('btnClearSolution');
+    const solucionField      = document.getElementById('solucionField');
+    const evidenciaSolField  = document.getElementById('evidenciaSolField');
+    const clearSolutionBtn   = document.getElementById('btnClearSolution');
 
     function openSolutionModal(btn) {
-      const id = btn.dataset.id;
-      const motivo = btn.dataset.motivo || '';
+      const id        = btn.dataset.id;
+      const motivo    = btn.dataset.motivo || '';
       const evidencia = btn.dataset.evidencia || '';
 
       if (incidenciaIdField) incidenciaIdField.value = id;
-      if (motivoText) motivoText.textContent = motivo;
+      if (motivoText)        motivoText.textContent = motivo;
 
-      // 🔹 Pintar el botoncito "Ver" de la evidencia
+      // 🔹 Evidencia: siempre link que abre en otra pestaña
       if (solutionEvidence) {
         if (evidencia) {
-          // si es imagen, usar el mismo visor modal
-          if (isImage(evidencia)) {
-            solutionEvidence.innerHTML =
-              '<a href="#" id="solutionEvidenceLink">Ver</a>';
-
-            const link = document.getElementById('solutionEvidenceLink');
-            if (link) {
-              link.addEventListener('click', function (e) {
-                e.preventDefault();
-                openModal(evidencia);
-              });
-            }
-          } else {
-            // pdf u otro archivo -> nueva pestaña
-            solutionEvidence.innerHTML =
-              '<a href="' + evidencia +
-              '" target="_blank" rel="noopener">Ver</a>';
-          }
+          solutionEvidence.innerHTML =
+            '<a href="' + evidencia +
+            '" target="_blank" rel="noopener">Ver archivo</a>';
         } else {
           solutionEvidence.textContent = '—';
         }
       }
 
-      // Fecha de solución: hoy por defecto (solo si está vacío)
+      // Fecha de solución: hoy por defecto (si está vacío)
       if (fechaSolField && !fechaSolField.value) {
-        const hoyLocal = getHoyLocalISO();      // ✅ fecha local
+        const hoyLocal = getHoyLocalISO();
         fechaSolField.value = hoyLocal;
-        // opcional: guardamos por si algún día quieres restaurarla
-        fechaSolField.dataset.originalDate = hoyLocal;
       }
 
       if (solutionModal) solutionModal.style.display = 'flex';
@@ -631,23 +587,24 @@
 
     function closeSolutionModal() {
       if (solutionModal) solutionModal.style.display = 'none';
-      if (solutionForm) solutionForm.reset();
+      if (solutionForm)  solutionForm.reset();
       if (solutionEvidence) solutionEvidence.textContent = '—';
     }
 
     // Botón "Limpiar": solo limpia texto y archivo, NO la fecha
     if (clearSolutionBtn) {
       clearSolutionBtn.addEventListener('click', () => {
-        if (solucionField) solucionField.value = '';
+        if (solucionField)     solucionField.value = '';
         if (evidenciaSolField) evidenciaSolField.value = '';
-        // NO tocamos fechaSolField para que conserve la fecha
       });
     }
 
+    // Abrir modal al hacer clic en "Atender"
     document.querySelectorAll('.btn-solucion').forEach(btn => {
       btn.addEventListener('click', () => openSolutionModal(btn));
     });
 
+    // Cerrar modal solución
     if (closeSolutionBtn) {
       closeSolutionBtn.addEventListener('click', closeSolutionModal);
     }
