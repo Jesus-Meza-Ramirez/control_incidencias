@@ -303,17 +303,64 @@
 
 
 
-    <!-- Filtro por fecha -->
-    <form method="get" style="margin: 0 0 12px 0; display:flex; gap:8px; align-items:center;">
-      <label>Desde
-        <input type="date" name="rev_desde" value="{{ rev_desde }}">
-      </label>
-      <label>Hasta
-        <input type="date" name="rev_hasta" value="{{ rev_hasta }}">
-      </label>
-      <button type="submit">Filtrar</button>
-      <a href="{% url 'panel_admin_terminal' %}">Limpiar</a>
-    </form>
+  <form method="get"
+        style="background:#f1f5f9; padding:14px; border-radius:10px; margin-bottom:18px; overflow-x:auto;">
+
+    <div style="display:flex; gap:22px; align-items:flex-start; flex-wrap:wrap;">
+
+      <!-- FECHA INCIDENCIA -->
+      <div style="background:#e8f2ff; padding:10px 12px; border-radius:8px;">
+        <label style="display:block; font-size:14px; font-weight:700; margin-bottom:6px; color:#0057a3;">
+          📅 Fecha de incidencia
+        </label>
+
+        <div style="display:flex; gap:10px;">
+          <div style="display:flex; flex-direction:column;">
+            <label style="font-size:12px;">Desde</label>
+            <input type="date" name="f1" value="{{ f1 }}" style="padding:5px; min-width:130px;">
+          </div>
+
+          <div style="display:flex; flex-direction:column;">
+            <label style="font-size:12px;">Hasta</label>
+            <input type="date" name="f2" value="{{ f2 }}" style="padding:5px; min-width:130px;">
+          </div>
+        </div>
+      </div>
+
+      <!-- FECHA REVISIÓN -->
+      <div style="background:#e8ffeb; padding:10px 12px; border-radius:8px;">
+        <label style="display:block; font-size:14px; font-weight:700; margin-bottom:6px; color:#0d6b28;">
+          📋 Fecha de revisión
+        </label>
+
+        <div style="display:flex; gap:10px;">
+          <div style="display:flex; flex-direction:column;">
+            <label style="font-size:12px;">Desde</label>
+            <input type="date" name="r1" value="{{ r1 }}" style="padding:5px; min-width:130px;">
+          </div>
+
+          <div style="display:flex; flex-direction:column;">
+            <label style="font-size:12px;">Hasta</label>
+            <input type="date" name="r2" value="{{ r2 }}" style="padding:5px; min-width:130px;">
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div style="margin-top:18px; display:flex; gap:12px;">
+      <button type="submit"
+              style="padding:9px 16px; background:#1b7f6b; color:white; border:none; border-radius:6px; font-weight:600;">
+        Filtrar
+      </button>
+
+      <a href="{% url 'panel_admin_terminal' %}"
+        style="padding:8px 14px; background:#e2e8f0; color:#1e293b; border-radius:6px; font-weight:600; text-decoration:none;">
+        Limpiar
+      </a>
+    </div>
+  </form>
+
 
     <!-- Tabla -->
     <div class="table-wrap">
@@ -336,7 +383,7 @@
         <tbody>
           {% for r in rows %}
           <tr>
-            <td>{{ r.fecha|date:"d-m-y" }}</td>
+            <td>{{ r.fecha_incidencia|date:"d-m-y" }}</td>
             <td>{{ r.nombre }}</td>
             <td>{{ r.usuario }}</td>
             <td>{{ r.cargo }}</td>
@@ -358,7 +405,7 @@
 
             <td class="tooltip-container"><span class="motivo-preview">{{ r.motivo|truncatechars:30 }}</span>
             <div class="tooltip-box">{{ r.motivo }}</div></td>
-            <td>{{ r.fecha_revision|date:"d-m-Y" }}</td>
+            <td>{{ r.fecha_revision|date:"d-m-y" }}</td>
             <td class="actions">
               {% if r.evidencia %}
                 <a href="{{ r.evidencia }}" class="evidence-link" data-url="{{ r.evidencia }}">Ver</a>

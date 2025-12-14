@@ -325,12 +325,12 @@ def panel_control_interno(request):
  #   return render(request, 'placeholder.html', {'titulo': 'Panel Admin Terminal'})
 
 def panel_admin_terminal(request):
-    # 1. Verificar sesión
+    # 1) Verificar sesión
     maybe_redirect = _require_session(request)
     if maybe_redirect:
         return maybe_redirect
 
-    # 2. Obtener usuario logueado y su terminal
+    # 2) Obtener usuario logueado y su terminal
     uid = request.session.get('uid')
     user = (
         Usuario.objects
@@ -343,14 +343,20 @@ def panel_admin_terminal(request):
     terminal_name = '—'
 
     if user and user.id_terminal_id:
-        terminal_id = user.id_terminal_id                 # ID numérico del terminal
+        terminal_id = user.id_terminal_id
         terminal_name = getattr(user.id_terminal, 'nombre_terminal', str(user.id_terminal_id))
 
-    # 3. Filtros de fecha (usamos fecha_revision igual que en control interno)
-    rev_desde = request.GET.get('rev_desde')  # 'YYYY-MM-DD'
-    rev_hasta = request.GET.get('rev_hasta')  # 'YYYY-MM-DD'
+    # ==========================================================
+    # 3) Filtros (igual que Control Interno)
+    #    Fecha de incidencia: f1, f2
+    #    Fecha de revisión:  r1, r2
+    # ==========================================================
+    f1 = (request.GET.get('f1') or '').strip()  # YYYY-MM-DD
+    f2 = (request.GET.get('f2') or '').strip()
+    r1 = (request.GET.get('r1') or '').strip()
+    r2 = (request.GET.get('r2') or '').strip()
 
-    # 4. Query base: incidencias SOLO del terminal del usuario
+    # 4) Query base: incidencias SOLO del terminal del usuario
     qs = (
         Incidencia.objects
         .select_related('id_bc', 'id_usuario', 'id_bc__id_terminal')
@@ -360,31 +366,44 @@ def panel_admin_terminal(request):
     if terminal_id is not None:
         qs = qs.filter(id_bc__id_terminal_id=terminal_id)
 
-    # 5. Filtro por rango de fechas (fecha_revision)
-    if rev_desde and rev_hasta:
-        try:
-            d1 = date.fromisoformat(rev_desde)
-            d2 = date.fromisoformat(rev_hasta)
-            if d1 > d2:
-                d1, d2 = d2, d1
+    # =========================
+    # 5) Aplicar filtros fechas
+    # =========================
+    # ---- Fecha de incidencia ----
+    try:
+        if f1:
+            d1 = date.fromisoformat(f1)
+            # si fecha_incidencia es DateField:
+            qs = qs.filter(fecha_incidencia__gte=d1)
+        if f2:
+            d2 = date.fromisoformat(f2)
+            qs = qs.filter(fecha_incidencia__lte=d2)
+    except ValueError:
+        pass
 
-            qs = qs.filter(fecha_revision__range=(d1, d2))
-            qs = qs.filter(fecha_revision__isnull=False)
-        except ValueError:
-            # Formato raro → ignoramos filtro
-            pass
+    # ---- Fecha de revisión ---- (normalmente DateTimeField)
+    try:
+        if r1:
+            rd1 = date.fromisoformat(r1)
+            qs = qs.filter(fecha_revision__gte=rd1)
+        if r2:
+            rd2 = date.fromisoformat(r2)
+            qs = qs.filter(fecha_revision__lte=rd2)
+    except ValueError:
+        pass
 
-    # 👉 Query para las tarjetas (solo filtra por terminal + fechas)
+    # 👉 Query para tarjetas (ya incluye filtros de fecha y terminal)
     qs_for_cards = qs
 
-    # 6. Filtro por estado vía cards (Conforme / Observado / Pendiente / Resuelto)
+    # 6) Filtro por estado vía cards
     estado_card = (request.GET.get('estado_card') or '').lower()
     if estado_card in ('conforme', 'observado', 'pendiente', 'resuelto'):
         qs = qs.filter(estado__iexact=estado_card)
 
-    # 7. Paginación (20 por página)
+    # 7) Paginación
     per_page = 20
     paginator = Paginator(qs, per_page)
+
     try:
         page_num = int(request.GET.get('page', 1))
     except ValueError:
@@ -395,36 +414,31 @@ def panel_admin_terminal(request):
     except EmptyPage:
         page_obj = paginator.page(1)
 
-    # 8. Construcción de filas para la tabla
+    # 8) Construcción de filas para la tabla
     rows = []
     for inc in page_obj.object_list:
-        
         inc_id = getattr(inc, 'id_incidencia', None)
-        
-        fecha = getattr(inc, 'fecha_incidencia', None)
 
+        # Fecha de incidencia (usa el campo real)
+        fecha_incidencia = getattr(inc, 'fecha_incidencia', None)
 
         bc = getattr(inc, 'id_bc', None)
-        bc_nombre = getattr(bc, 'nombre', '—')
-        bc_usuario = getattr(bc, 'usuario', '—')
-        bc_cargo   = getattr(bc, 'cargo', '—') if bc else '—'
+        bc_nombre = getattr(bc, 'nombre', '—') if bc else '—'
+        bc_usuario = getattr(bc, 'usuario', '—') if bc else '—'
+        bc_cargo = getattr(bc, 'cargo', '—') if bc else '—'
 
-
-        term_obj = getattr(bc, 'id_terminal', None)
-        terminal_txt = getattr(term_obj, 'nombre', None) if term_obj else None
+        term_obj = getattr(bc, 'id_terminal', None) if bc else None
+        terminal_txt = getattr(term_obj, 'nombre_terminal', None) if term_obj else None
         if not terminal_txt:
-            terminal_txt = getattr(bc, 'id_terminal', '—')
-
+            terminal_txt = '—'
 
         ci_obj = getattr(inc, 'id_usuario', None)
-        control_interno = getattr(ci_obj, 'nombre', '—')
+        control_interno = getattr(ci_obj, 'nombre', '—') if ci_obj else '—'
 
-        # Estado crudo en BD
         estado_raw = (getattr(inc, 'estado', '') or '').lower()
-
         if estado_raw == 'observado':
             estado = 'Observado'
-        elif estado_raw == 'pendiente':  # o 'pendiente_revision'
+        elif estado_raw == 'pendiente':
             estado = 'Pendiente'
         elif estado_raw == 'resuelto':
             estado = 'Resuelto'
@@ -440,52 +454,62 @@ def panel_admin_terminal(request):
 
         rows.append({
             'id_incidencia': inc_id,
-            'fecha': fecha,
+            'fecha_incidencia': fecha_incidencia,
             'nombre': bc_nombre,
             'usuario': bc_usuario,
             'cargo': bc_cargo,
             'terminal': terminal_txt,
             'control_interno': control_interno,
             'estado': estado,
-            'estado_raw': estado_raw,  # por si lo necesitas después
+            'estado_raw': estado_raw,
             'motivo': motivo,
             'evidencia': evidencia,
             'fecha_revision': fecha_revision,
         })
 
-    # 9. Tarjetas de resumen (usamos el queryset sin filtro de estado_card)
+    # 9) Tarjetas
     cards = {
         'activas': qs_for_cards.exclude(estado__iexact='resuelto').count(),
         'pendientes': qs_for_cards.filter(estado__iexact='pendiente').count(),
         'resueltas': qs_for_cards.filter(estado__iexact='resuelto').count(),
         'conformes': qs_for_cards.filter(estado__iexact='conforme').count(),
         'observadas': qs_for_cards.filter(estado__iexact='observado').count(),
-        "total": qs_for_cards.count(),  # 👈 NUEVO
+        'total': qs_for_cards.count(),
     }
 
-    # 10. Preservar filtros en paginación
+    # 10) Preservar filtros en paginación
     preserved = ''
-    if rev_desde:
-        preserved += f'&rev_desde={rev_desde}'
-    if rev_hasta:
-        preserved += f'&rev_hasta={rev_hasta}'
+    if f1:
+        preserved += f'&f1={f1}'
+    if f2:
+        preserved += f'&f2={f2}'
+    if r1:
+        preserved += f'&r1={r1}'
+    if r2:
+        preserved += f'&r2={r2}'
     if estado_card:
         preserved += f'&estado_card={estado_card}'
 
-    # 11. Contexto para el template
+    # 11) Contexto
     context = {
         'usuario_nombre': request.session.get('nombre', 'Usuario'),
         'terminal_name': terminal_name,
+
         'rows': rows,
-        
         'cards': cards,
-        
+
         'page_obj': page_obj,
         'preserved': preserved,
-        'rev_desde': rev_desde or '',
-        'rev_hasta': rev_hasta or '',
-        'estado_card': estado_card,   # para marcar el card activo
+
+        # valores para mantener inputs rellenos
+        'f1': f1,
+        'f2': f2,
+        'r1': r1,
+        'r2': r2,
+
+        'estado_card': estado_card,
     }
+
     return render(request, 'admin_terminal_dashboard.html', context)
 
 

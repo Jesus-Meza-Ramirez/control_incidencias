@@ -1,30 +1,18 @@
 {% extends "base_panel.html" %}
 {% block title %}Panel | Control Interno{% endblock %}
 
-
 {% block head_css %}
 <style>
-
+  /* =======================
+     SCROLL GLOBAL (BODY)
+     ======================= */
   html, body {
-  height: 100%;
-  margin: 0;
-  overflow: hidden; /* Evita el scroll global */
-}
+    height: 100%;
+    margin: 0;
+    overflow-y: auto;   /* ✅ scroll global */
+    overflow-x: hidden;
+  }
 
-.table-wrap {
-    flex: 1;
-    overflow-y: auto;
-    overflow-x: auto;
-    background: #fff;
-    padding: 10px;
-    border-radius: 8px;
-
-    /* Para que el scroll quede bien */
-    max-height: none;
-}
-
-  /* Hace que la página use todo el viewport */
-  html, body { height: 100%; margin: 0; }
   body { background: #0f1e25; }
 
   /* ⚠️ Si tu base.html tiene un contenedor con max-width, neutralízalo aquí */
@@ -34,27 +22,37 @@
     padding: 0 !important;
   }
 
-  /* ====== LAYOUT DE PANTALLA COMPLETA ====== */
+  /* =======================
+     LAYOUT PANTALLA COMPLETA
+     ======================= */
   .layout {
     display: grid;
-    grid-template-columns: 240px 1fr;   /* sidebar | contenido */
-    gap: 0;                             /* sin separación lateral */
-    width: 100vw;                       /* todo el ancho del viewport */
-    min-height: 100vh;                  /* toda la altura visible */
+    grid-template-columns: 240px 1fr; /* sidebar | contenido */
+    gap: 0;
+    width: 100vw;
+    min-height: 100vh;
+    height: auto; /* ✅ clave para no forzar espacios extra */
     margin: 0;
 
     /* Truco para “escapar” cualquier contenedor centrado del base.html */
     margin-left: calc(50% - 50vw);
   }
 
-  /* ====== SIDEBAR ====== */
+  /* =======================
+     SIDEBAR
+     ======================= */
   .sidebar {
     background: #1b7f6b;
     color: #fff;
     padding: 20px 0;
     border-radius: 0;
   }
-  .brand { font-weight: 800; text-align: center; margin: 6px 0 12px; letter-spacing: .5px; }
+  .brand {
+    font-weight: 800;
+    text-align: center;
+    margin: 6px 0 12px;
+    letter-spacing: .5px;
+  }
   .menu { list-style: none; margin: 0; padding: 6px 0; }
   .menu a {
     display: block;
@@ -67,22 +65,22 @@
   }
   .menu a:hover { background: #166b5a; }
 
-  /* ====== CONTENIDO ====== */
+  /* =======================
+     CONTENIDO
+     ======================= */
   .main {
-      background: #ffffff;
-      padding: 24px 32px;
-      border-radius: 0;
-      box-shadow: none;
+    background: #ffffff;
+    padding: 24px 32px;
+    border-radius: 0;
+    box-shadow: none;
 
-      /* 🔹 La página NO scrollea
-        🔹 La tabla sí scrollea
-        🔹 La paginación es visible */
-      overflow: visible;
-      height: calc(100vh - 20px);
-      display: flex;
-      flex-direction: column;
+    display: flex;
+    flex-direction: column;
+
+    height: auto;       /* ✅ NO forzar 100vh */
+    min-height: 100vh;  /* ✅ se ve completo, pero no crea “vacío” raro */
+    overflow: visible;
   }
-
 
   .page-title {
     background: #2a9c86;
@@ -95,29 +93,34 @@
   }
   .hello { margin: 8px 0 16px; color: #374151; }
 
-  .table-wrap { background:#f9fafb; border-radius:12px; padding:14px; overflow:auto; }
+  /* =======================
+     TABLA CON SCROLL INTERNO
+     ======================= */
+  .table-wrap {
+    flex: 1;
+    background:#f9fafb;
+    border-radius:12px;
+    padding:14px;
+
+    max-height: 60vh;   /* ✅ ajusta si quieres más/menos altura visible */
+    overflow-y: auto;   /* ✅ scroll de tabla */
+    overflow-x: auto;
+  }
+
   table { width:100%; border-collapse:collapse; background:#fff; }
   th, td { padding:12px 10px; border-bottom:1px solid #e5e7eb; font-size:14px; }
   th { background:#e6f3f0; color:#0f5132; text-align:left; }
+
   .badge { padding:4px 8px; border-radius:12px; font-size:12px; }
   .badge.ok { background:#e8f7ee; color:#1e7d3f; }
   .badge.warn { background:#fff3cd; color:#7a5d00; }
+  .badge.pending { background:#f3e8ff; color:#6b21a8; }
+  .badge.done { background:#dbeafe; color:#1d4ed8; }
 
 
-    /* Estado Pendiente (azulito) */
-  .badge.pending {
-
-    background:#f3e8ff;   /* lila claro */
-    color:#6b21a8;        /* lila fuerte */ 
-  }
-
-  /* Estado Resuelto (por si lo usas luego) */
-  .badge.done {
-    background:#dbeafe;   /* azul claro */
-    color:#1d4ed8;        /* azul fuerte */  
-  }
-
-  /* ====== RESPONSIVE ====== */
+  /* =======================
+     RESPONSIVE
+     ======================= */
   @media (max-width: 1024px) {
     .layout { grid-template-columns: 200px 1fr; }
   }
@@ -126,20 +129,18 @@
     .sidebar { position: static; width: 100%; }
   }
 
-  .tooltip-container {
-    position: relative;
-    cursor: pointer;
-}
-
-.motivo-preview {
+  /* =======================
+     TOOLTIP MOTIVO
+     ======================= */
+  .tooltip-container { position: relative; cursor: pointer; }
+  .motivo-preview {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    max-width: 240px; /* ancho de la celda */
+    max-width: 240px;
     display: inline-block;
-}
-
-.tooltip-box {
+  }
+  .tooltip-box {
     display: none;
     position: absolute;
     top: 100%;
@@ -152,96 +153,45 @@
     box-shadow: 0 2px 8px rgba(0,0,0,0.25);
     border: 1px solid #ddd;
     white-space: normal;
-}
+  }
+  .tooltip-container:hover .tooltip-box { display: block; }
 
-.tooltip-container:hover .tooltip-box {
-    display: block;
-}
+  /* =======================
+     BOTONES
+     ======================= */
+  .btn-filtrar,
+  .btn-limpiar,
+  .btn-excel { transition: all 0.25s ease; cursor: pointer; }
 
-/* Caja principal */
-.filtros-box {
-    background: #f8fafc;
-    padding: 16px;
-    border-radius: 12px;
-    margin-bottom: 20px;
-    border: 1px solid #e2e8f0;
-}
-
-/* Títulos de sección */
-.grupo-titulo {
-    font-weight: 700;
-    padding: 6px 12px;
-    border-radius: 6px;
-    margin-bottom: 10px;
-    font-size: 14px;
-}
-.grupo-titulo.azul { background: #e8f0fe; color:#1e3a8a; }
-.grupo-titulo.verde { background: #e7f8ed; color:#166534; }
-.grupo-titulo.gris { background: #f1f5f9; color:#334155; }
-
-/* Grids */
-.grupo-grid {
-    display: grid;
-    grid-template-columns: repeat(2,1fr);
-    gap: 12px;
-}
-.grupo-grid-3 {
-    display: grid;
-    grid-template-columns: repeat(3,1fr);
-    gap: 12px;
-}
-
-/* Inputs compactos */
-.filtros-box input,
-.filtros-box select {
-    width: 100%;
-    padding: 6px 8px;
-    font-size: 14px;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-}
-
-/* ===================== BOTONES ===================== */
-
-.btn-filtrar,
-.btn-limpiar,
-.btn-excel {
-    transition: all 0.25s ease;
-    cursor: pointer;
-}
-
-/* BOTÓN FILTRAR */
-.btn-filtrar {
+  .btn-filtrar {
     background: #1b7f6b;
     color: white !important;
     padding: 9px 16px;
     border-radius: 6px;
     font-weight: 600;
     border: none;
-}
-.btn-filtrar:hover {
+  }
+  .btn-filtrar:hover {
     background: #145c50;
     transform: translateY(-2px);
     box-shadow: 0 3px 6px rgba(0,0,0,0.12);
-}
+  }
 
-/* BOTÓN LIMPIAR */
-.btn-limpiar {
+  .btn-limpiar {
     background: #e2e8f0;
     color:#1e293b !important;
     padding: 8px 14px;
     border-radius: 6px;
     font-weight: 600;
     text-decoration:none;
-}
-.btn-limpiar:hover {
+  }
+  .btn-limpiar:hover {
     background: #cbd5e1;
     transform: translateY(-2px);
     box-shadow: 0 3px 6px rgba(0,0,0,0.12);
-}
+  }
 
-/* BOTÓN EXCEL */
-.btn-excel {
+  .btn-excel {
     background:#0b66a0;
     color:white !important;
     padding:8px 14px;
@@ -249,48 +199,56 @@
     font-weight:600;
     text-decoration:none;
     margin-left:8px;
-}
-.btn-excel:hover {
+  }
+  .btn-excel:hover {
     background:#084d78;
     transform: translateY(-2px);
     box-shadow: 0 3px 6px rgba(0,0,0,0.12);
+  }
+
+  .btn-respuesta {
+    padding: 6px 10px;
+    font-size: 13px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    background: #2563eb;
+    color: #fff;
+    transition: background 0.2s;
+  }
+  .btn-respuesta:hover { background: #1d4ed8; }
+
+
+/* Contenedor: ya tienes overflow-x/overflow-y, lo dejamos */
+.table-wrap{
+  overflow-x: auto;
+  overflow-y: auto;
 }
 
-
-.btn-respuesta {
-  padding: 6px 10px;
-  font-size: 13px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  background: #2563eb;
-  color: #fff;
-  transition: background 0.2s;
+/* 🔥 Lo importante: evita que la tabla se “achique” */
+.table-wrap table{
+  width: 100%;
+  min-width: 1200px;   /* 👈 ajusta: 1100, 1300, 1500 según tus columnas */
+  border-collapse: collapse;
 }
 
-.btn-solucion:hover {
-  background: #1d4ed8;
+/* (Opcional) evita que el texto parta y reduzca columnas */
+.table-wrap th,
+.table-wrap td{
+  white-space: nowrap;
 }
-
 
 </style>
+{% endblock %}
 
+{% block content %}
 <div class="layout">
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="brand">JAKSA</div>
     <ul class="menu">
       <li><a href="{% url 'panel_control_interno' %}">Dashboard</a></li>
-      <!-- <li><a href="#">Registrar incidencia</a></li> -->
-
       <li><a href="#" id="btnAbrirIncidencia">Registrar incidencia</a></li>
-
-
-
-
-
-
-      
       <li><a href="{% url 'logout' %}">Cerrar sesión</a></li>
     </ul>
   </aside>
@@ -300,30 +258,23 @@
     <div class="page-title">Sistema de control de incidencias</div>
     <p class="hello">Bienvenido {{ usuario_nombre }} — Terminal: <strong>{{ terminal_actual }}</strong></p>
 
-    <!-- Filtro por fecha de revisión -->
     <!-- === FILTROS DE BUSQUEDA === -->
     <form method="get"
         style="background:#f1f5f9; padding:14px; border-radius:10px; margin-bottom:18px; overflow-x:auto;">
 
         <h3 style="margin:0 0 12px 0; color:#1b7f6b; font-weight:700;">Filtros avanzados</h3>
 
-        <!-- 🔹 CONTENEDOR FLEX CON WRAP -->
         <div style="display:flex; gap:22px; align-items:flex-start; flex-wrap:wrap;">
-
-            <!-- =====================
-                GRUPO: FECHA INCIDENCIA
-            ====================== -->
+            <!-- Fecha Incidencia -->
             <div style="background:#e8f2ff; padding:10px 12px; border-radius:8px;">
                 <label style="display:block; font-size:14px; font-weight:700; margin-bottom:6px; color:#0057a3;">
                     📅 Fecha de incidencia
                 </label>
-
                 <div style="display:flex; gap:10px;">
                     <div style="display:flex; flex-direction:column;">
                         <label style="font-size:12px;">Desde</label>
                         <input type="date" name="f1" value="{{ f1 }}" style="padding:5px; min-width:130px;">
                     </div>
-
                     <div style="display:flex; flex-direction:column;">
                         <label style="font-size:12px;">Hasta</label>
                         <input type="date" name="f2" value="{{ f2 }}" style="padding:5px; min-width:130px;">
@@ -331,20 +282,16 @@
                 </div>
             </div>
 
-            <!-- =====================
-                GRUPO: FECHA REVISIÓN
-            ====================== -->
+            <!-- Fecha Revisión -->
             <div style="background:#e8ffeb; padding:10px 12px; border-radius:8px;">
                 <label style="display:block; font-size:14px; font-weight:700; margin-bottom:6px; color:#0d6b28;">
                     📋 Fecha de revisión
                 </label>
-
                 <div style="display:flex; gap:10px;">
                     <div style="display:flex; flex-direction:column;">
                         <label style="font-size:12px;">Desde</label>
                         <input type="date" name="r1" value="{{ r1 }}" style="padding:5px; min-width:130px;">
                     </div>
-
                     <div style="display:flex; flex-direction:column;">
                         <label style="font-size:12px;">Hasta</label>
                         <input type="date" name="r2" value="{{ r2 }}" style="padding:5px; min-width:130px;">
@@ -352,17 +299,13 @@
                 </div>
             </div>
 
-            <!-- =====================
-                GRUPO: OTROS FILTROS
-            ====================== -->
+            <!-- Otros filtros -->
             <div style="background:#ffffff; padding:10px 12px; border-radius:8px; border:1px solid #e2e8f0;">
                 <label style="display:block; font-size:14px; font-weight:700; margin-bottom:6px; color:#333;">
                     🔎 Otros filtros
                 </label>
 
                 <div style="display:flex; gap:14px;">
-
-                    <!-- TERMINAL -->
                     <div style="display:flex; flex-direction:column;">
                         <label style="font-size:12px;">Terminal</label>
                         <select name="terminal" id="filtroTerminal" style="padding:5px; min-width:120px;">
@@ -376,20 +319,17 @@
                         </select>
                     </div>
 
-                    <!-- ESTADO -->
                     <div style="display:flex; flex-direction:column;">
                         <label style="font-size:12px;">Estado</label>
-                            <select name="estado" style="padding:5px; min-width:120px;">
-                                <option value="">Todos</option>
-                                <option value="Conforme"  {% if estado == "Conforme"  %}selected{% endif %}>Conforme</option>
-                                <option value="Observado" {% if estado == "Observado" %}selected{% endif %}>Observado</option>
-                                <option value="Pendiente" {% if estado == "Pendiente" %}selected{% endif %}>Pendiente</option>
-                                <option value="Resuelto"  {% if estado == "Resuelto"  %}selected{% endif %}>Resuelto</option>
-                            </select>
-
+                        <select name="estado" style="padding:5px; min-width:120px;">
+                            <option value="">Todos</option>
+                            <option value="Conforme"  {% if estado == "Conforme"  %}selected{% endif %}>Conforme</option>
+                            <option value="Observado" {% if estado == "Observado" %}selected{% endif %}>Observado</option>
+                            <option value="Pendiente" {% if estado == "Pendiente" %}selected{% endif %}>Pendiente</option>
+                            <option value="Resuelto"  {% if estado == "Resuelto"  %}selected{% endif %}>Resuelto</option>
+                        </select>
                     </div>
 
-                    <!-- USUARIO -->
                     <div style="display:flex; flex-direction:column;">
                         <label style="font-size:12px;">Usuario</label>
                         <select name="usuario" id="filtroUsuario" style="padding:5px; min-width:130px;">
@@ -404,13 +344,12 @@
                         </select>
                     </div>
 
-                    <!-- CONTROL INTERNO -->
                     <div style="display:flex; flex-direction:column;">
                         <label style="font-size:12px;">Control interno</label>
                         <select name="ci" style="padding:5px; min-width:140px;">
                             <option value="">Todos</option>
                             {% for u in usuarios_ci %}
-                            <option value="{{ u.usuario_login }}" 
+                            <option value="{{ u.usuario_login }}"
                                 {% if ci == u.usuario_login %}selected{% endif %}>
                                 {{ u.usuario_login }}
                             </option>
@@ -419,31 +358,19 @@
                     </div>
                 </div>
             </div>
+        </div>
 
-        </div> <!-- fin del contenedor de filtros -->
-
-
-        <!-- ============================
-            🔽 BOTONES ABAJO (EN SU FILA)
-        ============================= -->
         <div style="margin-top:18px; display:flex; gap:12px;">
+            <button type="submit" class="btn-filtrar">Filtrar</button>
 
-            <button type="submit" class="btn-filtrar"
-                style="padding:9px 16px; background:#1b7f6b; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">
-                Filtrar
-            </button>
-
-            <a href="{% url 'panel_control_interno' %}" class="btn-limpiar"
-                style="padding:8px 14px; background:#e2e8f0; color:#1e293b; border-radius:6px; font-weight:600; text-decoration:none;">
+            <a href="{% url 'panel_control_interno' %}" class="btn-limpiar">
                 Limpiar
             </a>
 
-            <a href="{% url 'export_excel' %}?{{ request.GET.urlencode }}" class="btn-excel"
-                
-                style="background:#0b66a0; display:inline-block; padding:8px 12px; color:#fff; border-radius:6px; text-decoration:none;">
+            <a href="{% url 'export_excel' %}?{{ request.GET.urlencode }}" class="btn-excel">
                 Exportar Excel
             </a>
-            
+
             <button type="submit"
                 name="produccion_hoy"
                 value="1"
@@ -451,366 +378,291 @@
                 Producción hoy
             </button>
         </div>
-
     </form>
 
-
-
-
-
-
-
-
-
-    
-
+    <!-- TABLA -->
     <div class="table-wrap">
-        <table>
-            <thead>
-                <tr>
-                    <th>Fecha de incidencia</th>
-                    <th>Nombre</th>
-                    <th>Usuario</th>
-                    <th>Cargo</th>
-                    <th>Terminal</th>
-                    <th>Control interno</th>
-                    <th>Estado</th>
-                    <th>Motivo</th>
-                    <th>Fecha de revisión</th>
-                    <th>Evidencia</th>
-                    <th>Respuesta</th>
+      <table>
+        <thead>
+          <tr>
+            <th>Fecha de incidencia</th>
+            <th>Nombre</th>
+            <th>Usuario</th>
+            <th>Cargo</th>
+            <th>Terminal</th>
+            <th>Control interno</th>
+            <th>Estado</th>
+            <th>Motivo</th>
+            <th>Fecha de revisión</th>
+            <th>Evidencia</th>
+            <th>Respuesta</th>
+          </tr>
+        </thead>
 
-                </tr>
-            </thead>
+        <tbody>
+          {% for r in rows %}
+          <tr>
+            <td>{{ r.fecha|date:"d-m-y" }}</td>
+            <td>{{ r.nombre }}</td>
+            <td>{{ r.usuario }}</td>
+            <td>{{ r.cargo }}</td>
+            <td>{{ r.terminal }}</td>
+            <td>{{ r.control_interno }}</td>
 
-            <tbody>
-                {% for r in rows %}
-                <tr>
-                    <td>{{ r.fecha|date:"d-m-y" }}</td>
-                    <td>{{ r.nombre }}</td>
-                    <td>{{ r.usuario }}</td>
-                    <td>{{ r.cargo }}</td>
-                    <td>{{ r.terminal }}</td>
-                    <td>{{ r.control_interno }}</td>
+            <td>
+              {% if r.estado == "Conforme" %}
+                <span class="badge ok">Conforme</span>
+              {% elif r.estado == "Observado" %}
+                <span class="badge warn">Observado</span>
+              {% elif r.estado == "Pendiente" %}
+                <span class="badge pending">Pendiente</span>
+              {% elif r.estado == "Resuelto" %}
+                <span class="badge done">Resuelto</span>
+              {% else %}
+                <span class="badge warn">{{ r.estado }}</span>
+              {% endif %}
+            </td>
 
-                    <td>
-                        {% if r.estado == "Conforme" %}
-                            <span class="badge ok">Conforme</span>
-                        {% elif r.estado == "Observado" %}
-                            <span class="badge warn">Observado</span>
-                        {% elif r.estado == "Pendiente" %}
-                            <span class="badge pending">Pendiente</span>
-                        {% elif r.estado == "Resuelto" %}
-                            <span class="badge done">Resuelto</span>
-                        {% else %}
-                            <span class="badge warn">{{ r.estado }}</span>
-                        {% endif %}
-                    </td>
+            <td class="tooltip-container">
+              <span class="motivo-preview">{{ r.motivo|truncatechars:30 }}</span>
+              <div class="tooltip-box">{{ r.motivo }}</div>
+            </td>
 
+            <td>{{ r.fecha_revision|date:"d-m-Y" }}</td>
 
+            <td>
+              {% if r.evidencia %}
+                <a href="{{ r.evidencia }}" target="_blank" rel="noopener">Ver</a>
+              {% else %}
+                —
+              {% endif %}
+            </td>
 
-                    <td class="tooltip-container">
-                        <span class="motivo-preview">{{ r.motivo|truncatechars:30 }}</span>
-                        <div class="tooltip-box">{{ r.motivo }}</div>
-                    </td>
-
-                    <td>{{ r.fecha_revision|date:"d-m-Y" }}</td> 
-                    
-                    <td>
-                        {% if r.evidencia %}
-                            <a href="{{ r.evidencia }}" target="_blank">Ver</a>
-                        {% else %}
-                            —
-                        {% endif %}
-                    </td>
-
-                    <td>
-                        {% if r.estado == "Pendiente" and r.solucion_admin %}
-                            <button class="btn-respuesta"
-                                    data-respuesta="{{ r.solucion_admin|escapejs }}"
-                                    data-evidencia="{{ r.evidencia_solucion }}"
-                                    data-id="{{ r.id_incidencia }}"
-                                    data-fecha-respuesta="{{ r.fecha_solucion|date:'d-m-Y' }}">
-                                Ver respuesta
-                            </button>
-                        {% else %}
-                            —
-                        {% endif %}
-                    </td>
-
-                    
-                </tr>
-                
-
-
-
-
-                {% empty %}
-                <tr>
-                    <td colspan="10" style="text-align:center; color:#6b7280;">
-                        No hay incidencias
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>  <!-- ← Cierre del SCROLL -->
+            <td>
+              {% if r.estado == "Pendiente" and r.solucion_admin %}
+                <button class="btn-respuesta"
+                        data-respuesta="{{ r.solucion_admin|escapejs }}"
+                        data-evidencia="{{ r.evidencia_solucion }}"
+                        data-id="{{ r.id_incidencia }}"
+                        data-fecha-respuesta="{{ r.fecha_solucion|date:'d-m-Y' }}">
+                  Ver respuesta
+                </button>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="11" style="text-align:center; color:#6b7280;">
+              No hay incidencias
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
 
     <!-- PAGINACIÓN FUERA DEL SCROLL -->
     {% if page_obj %}
     <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-top:10px;">
-        
-        {% if page_obj.has_previous %}
-            <a href="?page=1{{ preserved }}">&laquo; Primero</a>
-            <a href="?page={{ page_obj.previous_page_number }}{{ preserved }}">Anterior</a>
-        {% endif %}
+      {% if page_obj.has_previous %}
+        <a href="?page=1{{ preserved }}">&laquo; Primero</a>
+        <a href="?page={{ page_obj.previous_page_number }}{{ preserved }}">Anterior</a>
+      {% endif %}
 
-        <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+      <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
 
-        {% if page_obj.has_next %}
-            <a href="?page={{ page_obj.next_page_number }}{{ preserved }}">Siguiente</a>
-            <a href="?page={{ page_obj.paginator.num_pages }}{{ preserved }}">Último &raquo;</a>
-        {% endif %}
-
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{{ preserved }}">Siguiente</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}{{ preserved }}">Último &raquo;</a>
+      {% endif %}
     </div>
     {% endif %}
-
-
-    
-
-
   </section>
 </div>
 {% endblock %}
-
-
-
-
 
 {% block scripts %}
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-    // --- abrir / cerrar modal registrar incidencia ---
-    const abrir  = document.getElementById("btnAbrirIncidencia");
-    const cerrar = document.getElementById("cerrarModal");
-    const modal  = document.getElementById("modalIncidencia");
+  // --- abrir / cerrar modal registrar incidencia ---
+  const abrir  = document.getElementById("btnAbrirIncidencia");
+  const cerrar = document.getElementById("cerrarModal");
+  const modal  = document.getElementById("modalIncidencia");
 
-    // --- campos del modal: estado / motivo / evidencia ---
-    const estado    = document.getElementById("estadoIncidencia");
-    const motivo    = document.getElementById("motivoIncidencia");
-    const evidencia = document.getElementById("evidenciaIncidencia");
+  // --- campos del modal: estado / motivo / evidencia ---
+  const estado    = document.getElementById("estadoIncidencia");
+  const motivo    = document.getElementById("motivoIncidencia");
+  const evidencia = document.getElementById("evidenciaIncidencia");
 
-    // función que activa/desactiva motivo + evidencia
-    function actualizarCamposEstado() {
-        if (!estado || !motivo || !evidencia) return;
+  function actualizarCamposEstado() {
+    if (!estado || !motivo || !evidencia) return;
 
-        const value = (estado.value || "").toLowerCase();
-        const esObservado = value.startsWith("observ");
+    const value = (estado.value || "").toLowerCase();
+    const esObservado = value.startsWith("observ");
 
-        if (esObservado) {
-            // estado = Observación → se habilitan
-            motivo.disabled = false;
-            evidencia.disabled = false;
-            motivo.style.backgroundColor = "white";
-            evidencia.style.backgroundColor = "white";
-            motivo.style.cursor = "text";
-            evidencia.style.cursor = "pointer";
-        } else {
-            // estado = Conforme → se bloquean y se limpian
-            motivo.disabled = true;
-            evidencia.disabled = true;
-            motivo.value = "";
-            evidencia.value = "";
-            motivo.style.backgroundColor = "#e5e7eb";
-            evidencia.style.backgroundColor = "#e5e7eb";
-            motivo.style.cursor = "not-allowed";
-            evidencia.style.cursor = "not-allowed";
+    if (esObservado) {
+      motivo.disabled = false;
+      evidencia.disabled = false;
+      motivo.style.backgroundColor = "white";
+      evidencia.style.backgroundColor = "white";
+      motivo.style.cursor = "text";
+      evidencia.style.cursor = "pointer";
+    } else {
+      motivo.disabled = true;
+      evidencia.disabled = true;
+      motivo.value = "";
+      evidencia.value = "";
+      motivo.style.backgroundColor = "#e5e7eb";
+      evidencia.style.backgroundColor = "#e5e7eb";
+      motivo.style.cursor = "not-allowed";
+      evidencia.style.cursor = "not-allowed";
+    }
+  }
+
+  if (estado) {
+    actualizarCamposEstado();
+    estado.addEventListener("change", actualizarCamposEstado);
+  }
+
+  if (abrir && modal) {
+    abrir.addEventListener("click", function (e) {
+      e.preventDefault();
+      const form = modal.querySelector("form");
+      if (form) form.reset();
+      actualizarCamposEstado();
+      modal.style.display = "block";
+    });
+  }
+
+  if (cerrar && modal) {
+    cerrar.addEventListener("click", function () {
+      modal.style.display = "none";
+    });
+  }
+
+  // --- filtro Terminal -> Boletero/Cajero (modal) ---
+  const selTerminal = document.getElementById("terminalSelect");
+  const selBoletero = document.getElementById("boleteroSelect");
+
+  if (selTerminal && selBoletero) {
+    const allBoleteros = Array.from(selBoletero.querySelectorAll("option[data-terminal]"));
+
+    selTerminal.addEventListener("change", function () {
+      const terminalSeleccionada = this.value;
+
+      selBoletero.querySelectorAll("option[data-terminal]").forEach(function (opt) {
+        opt.remove();
+      });
+
+      allBoleteros.forEach(function (opt) {
+        if (terminalSeleccionada === "" || opt.dataset.terminal === terminalSeleccionada) {
+          selBoletero.appendChild(opt);
         }
-    }
+      });
 
-    // configurar comportamiento inicial y cambio de estado
-    if (estado) {
-        actualizarCamposEstado(); // al cargar
-        estado.addEventListener("change", actualizarCamposEstado);
-    }
-
-    if (abrir && modal) {
-        abrir.addEventListener("click", function (e) {
-            e.preventDefault();
-            const form = modal.querySelector("form");
-            if (form) form.reset();   // limpia valores
-
-            // después del reset, el select vuelve a "Conforme"
-            actualizarCamposEstado();
-
-            modal.style.display = "block";
-        });
-    }
-
-    if (cerrar && modal) {
-        cerrar.addEventListener("click", function () {
-            modal.style.display = "none";
-        });
-    }
-
-    // --- filtro Terminal -> Boletero/Cajero ---
-    const selTerminal = document.getElementById("terminalSelect");
-    const selBoletero = document.getElementById("boleteroSelect");
-
-    if (selTerminal && selBoletero) {
-
-        // guardamos TODAS las opciones originales (excepto el placeholder)
-        const allBoleteros = Array.from(
-            selBoletero.querySelectorAll("option[data-terminal]")
-        );
-
-        selTerminal.addEventListener("change", function () {
-            const terminalSeleccionada = this.value;
-
-            // limpiamos el combo de boletero, dejando solo el placeholder
-            selBoletero.querySelectorAll("option[data-terminal]").forEach(function (opt) {
-                opt.remove();
-            });
-
-            // volvemos a agregar solo los boleteros de esa terminal
-            allBoleteros.forEach(function (opt) {
-                if (terminalSeleccionada === "" || opt.dataset.terminal === terminalSeleccionada) {
-                    selBoletero.appendChild(opt);
-                }
-            });
-
-            // reseteamos selección
-            selBoletero.value = "";
-        });
-    }
+      selBoletero.value = "";
+    });
+  }
 });
 </script>
-
-
 
 <script>
 document.addEventListener("DOMContentLoaded", () => {
-    /* ===========================
-       FILTROS TERMINAL / USUARIO
-       =========================== */
-    const selTerminal = document.getElementById("filtroTerminal");
-    const selUsuario  = document.getElementById("filtroUsuario");
+  /* ===========================
+     FILTROS TERMINAL / USUARIO
+     =========================== */
+  const selTerminal = document.getElementById("filtroTerminal");
+  const selUsuario  = document.getElementById("filtroUsuario");
 
-    if (selTerminal && selUsuario) {
-        // Guardamos todas las opciones originales de usuario
-        const allUsuarios = Array.from(selUsuario.querySelectorAll("option[data-terminal]"));
+  if (selTerminal && selUsuario) {
+    const allUsuarios = Array.from(selUsuario.querySelectorAll("option[data-terminal]"));
 
-        // --- FILTRAR USUARIOS SEGÚN TERMINAL ---
-        selTerminal.addEventListener("change", () => {
-            const term = selTerminal.value;
-            const selectedUser = selUsuario.value;  // conservar usuario seleccionado si coincide
+    selTerminal.addEventListener("change", () => {
+      const term = selTerminal.value;
+      const selectedUser = selUsuario.value;
 
-            // Limpiamos opciones actuales (salvo "Todos")
-            selUsuario.querySelectorAll("option[data-terminal]").forEach(op => op.remove());
+      selUsuario.querySelectorAll("option[data-terminal]").forEach(op => op.remove());
 
-            // Agregamos solo los usuarios del terminal elegido
-            allUsuarios.forEach(op => {
-                if (term === "" || op.dataset.terminal === term) {
-                    selUsuario.appendChild(op);
-                }
-            });
-
-            // Mantener selección si existía
-            if (selectedUser && selUsuario.querySelector(`option[value="${selectedUser}"]`)) {
-                selUsuario.value = selectedUser;
-            } else {
-                selUsuario.value = "";
-            }
-        });
-
-        // --- AUTOCOMPLETAR TERMINAL CUANDO SELECCIONO USUARIO ---
-        selUsuario.addEventListener("change", () => {
-            const selectedUser = selUsuario.value; // mantener selección
-            const userOpt = selUsuario.selectedOptions[0];
-
-            if (!userOpt || !userOpt.dataset.terminal) return;
-
-            const terminalId = userOpt.dataset.terminal;
-
-            // Autocompleta terminal
-            selTerminal.value = terminalId;
-
-            // Ahora filtramos usuarios según EL terminal asignado
-            selTerminal.dispatchEvent(new Event("change"));
-
-            // VOLVER a activar el usuario seleccionado
-            selUsuario.value = selectedUser;
-        });
-    }
-
-    /* ===========================
-       MODAL "VER RESPUESTA"
-       =========================== */
-    const modal = document.getElementById('modalRespuesta');
-    const closeBtn = document.getElementById('cerrarModalRespuesta');
-    const textoRespuesta = document.getElementById('textoRespuesta');
-    const zonaEvidencia = document.getElementById('zonaEvidenciaRespuesta');
-    const fechaSpan = document.getElementById('fechaRespuesta');   // 👈 span de la fecha
-    const idField = document.getElementById('idIncidenciaEstado');
-
-    // abrir modal al hacer click en "Ver respuesta"
-    document.querySelectorAll('.btn-respuesta').forEach(btn => {
-        btn.addEventListener('click', () => {
-            const texto = btn.dataset.respuesta || '—';
-            const evidencia = btn.dataset.evidencia || '';
-            const id = btn.dataset.id || '';
-            const fecha = btn.dataset.fechaRespuesta || '—';  // 👈 viene del data-fecha-respuesta
-
-            if (textoRespuesta) textoRespuesta.textContent = texto;
-            if (idField) idField.value = id;
-            if (fechaSpan) fechaSpan.textContent = fecha;
-
-            if (zonaEvidencia) {
-                if (evidencia) {
-                    // Siempre abrir en otra pestaña, sin imagen embebida
-                    zonaEvidencia.innerHTML =
-                    `<a href="${evidencia}" target="_blank" rel="noopener">Ver archivo</a>`;
-                } else {
-                    zonaEvidencia.textContent = "—";
-                }
-            }
-
-            if (modal) modal.style.display = "flex";
-        });
-    });
-
-    // cerrar con la X
-    if (closeBtn && modal) {
-        closeBtn.addEventListener('click', () => {
-            modal.style.display = "none";
-        });
-    }
-
-    // cerrar haciendo click fuera del cuadro blanco
-    if (modal) {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.style.display = "none";
-            }
-        });
-    }
-
-    // cerrar con tecla ESC
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
-            modal.style.display = 'none';
+      allUsuarios.forEach(op => {
+        if (term === "" || op.dataset.terminal === term) {
+          selUsuario.appendChild(op);
         }
+      });
+
+      if (selectedUser && selUsuario.querySelector(`option[value="${selectedUser}"]`)) {
+        selUsuario.value = selectedUser;
+      } else {
+        selUsuario.value = "";
+      }
     });
+
+    selUsuario.addEventListener("change", () => {
+      const selectedUser = selUsuario.value;
+      const userOpt = selUsuario.selectedOptions[0];
+      if (!userOpt || !userOpt.dataset.terminal) return;
+
+      const terminalId = userOpt.dataset.terminal;
+
+      selTerminal.value = terminalId;
+      selTerminal.dispatchEvent(new Event("change"));
+      selUsuario.value = selectedUser;
+    });
+  }
+
+  /* ===========================
+     MODAL "VER RESPUESTA"
+     =========================== */
+  const modal = document.getElementById('modalRespuesta');
+  const closeBtn = document.getElementById('cerrarModalRespuesta');
+  const textoRespuesta = document.getElementById('textoRespuesta');
+  const zonaEvidencia = document.getElementById('zonaEvidenciaRespuesta');
+  const fechaSpan = document.getElementById('fechaRespuesta');
+  const idField = document.getElementById('idIncidenciaEstado');
+
+  document.querySelectorAll('.btn-respuesta').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const texto = btn.dataset.respuesta || '—';
+      const evidencia = btn.dataset.evidencia || '';
+      const id = btn.dataset.id || '';
+      const fecha = btn.dataset.fechaRespuesta || '—';
+
+      if (textoRespuesta) textoRespuesta.textContent = texto;
+      if (idField) idField.value = id;
+      if (fechaSpan) fechaSpan.textContent = fecha;
+
+      if (zonaEvidencia) {
+        if (evidencia) {
+          zonaEvidencia.innerHTML =
+            `<a href="${evidencia}" target="_blank" rel="noopener">Ver archivo</a>`;
+        } else {
+          zonaEvidencia.textContent = "—";
+        }
+      }
+
+      if (modal) modal.style.display = "flex";
+    });
+  });
+
+  if (closeBtn && modal) {
+    closeBtn.addEventListener('click', () => { modal.style.display = "none"; });
+  }
+
+  if (modal) {
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) modal.style.display = "none";
+    });
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal && modal.style.display === 'flex') {
+      modal.style.display = 'none';
+    }
+  });
 });
 </script>
-
-
-
-
-
-
-
 
 <!-- MODAL PARA REGISTRAR INCIDENCIA -->
 <div id="modalIncidencia"
@@ -824,7 +676,6 @@ document.addEventListener("DOMContentLoaded", () => {
         z-index: 9999;
         padding-top: 80px;
      ">
-
   <div style="
       background: white;
       width: 480px;
@@ -836,7 +687,6 @@ document.addEventListener("DOMContentLoaded", () => {
       position: relative;
       font-size: 14px;
   ">
-    
     <h2 style="margin-top:0; color:#1b7f6b; font-size:22px;">Registrar incidencia</h2>
 
     <span id="cerrarModal"
@@ -847,110 +697,55 @@ document.addEventListener("DOMContentLoaded", () => {
             font-weight:bold;
             color:#444;
             font-size:18px;
-          ">
-      ✖
-    </span>
+          ">✖</span>
 
     <form method="post" action="{% url 'registrar_incidencia' %}" enctype="multipart/form-data">
       {% csrf_token %}
 
-      <!-- 1. Selección de terminal -->
       <label for="terminalSelect">Terminal:</label>
-      <select id="terminalSelect"
-              name="id_terminal"
-              required
-              style="width:100%; margin-bottom:10px;">
+      <select id="terminalSelect" name="id_terminal" required style="width:100%; margin-bottom:10px;">
         <option value="">-- Seleccione terminal --</option>
         {% for t in terminales %}
           <option value="{{ t.id_terminal }}">{{ t.nombre_terminal }}</option>
         {% endfor %}
       </select>
 
-      <!-- 2. Boletero/Cajero filtrado por terminal -->
       <label for="boleteroSelect">Boletero / Cajero (usuario):</label>
-      <select id="boleteroSelect"
-              name="id_bc"
-              required
-              style="width:100%; margin-bottom:10px;">
+      <select id="boleteroSelect" name="id_bc" required style="width:100%; margin-bottom:10px;">
         <option value="">-- Seleccione --</option>
         {% for b in boleteros %}
-          <!-- usamos el USUARIO como texto y guardamos su terminal en data-terminal -->
-          <option value="{{ b.id_bc }}"
-                  data-terminal="{{ b.id_terminal_id }}">
+          <option value="{{ b.id_bc }}" data-terminal="{{ b.id_terminal_id }}">
             {{ b.usuario }}
           </option>
         {% endfor %}
       </select>
 
-      <!-- fecha de incidencia -->
       <label for="fechaIncidencia">Fecha de incidencia:</label>
-      <input type="date"
-             id="fechaIncidencia"
-             name="fecha_incidencia"
-             required
-             style="width:100%; margin-bottom:10px;">
+      <input type="date" id="fechaIncidencia" name="fecha_incidencia" required style="width:100%; margin-bottom:10px;">
 
-      <!-- estado (debajo de la fecha) -->
       <label for="estadoIncidencia">Estado:</label>
-      <select id="estadoIncidencia"
-              name="estado"
-              required
-              style="width:100%; margin-bottom:10px;">
+      <select id="estadoIncidencia" name="estado" required style="width:100%; margin-bottom:10px;">
         <option value="conforme" selected>Conforme</option>
         <option value="observado">Observación</option>
       </select>
 
-      <!-- motivo: se habilita solo si estado = Observación -->
       <label for="motivoIncidencia">Motivo:</label>
-      <textarea id="motivoIncidencia"
-                name="motivo"
-                disabled
-                style="
-                  width:100%;
-                  height:100px;
-                  margin-bottom:10px;
-                  background:#e5e7eb;
-                  cursor:not-allowed;
-                "></textarea>
+      <textarea id="motivoIncidencia" name="motivo" disabled
+        style="width:100%; height:100px; margin-bottom:10px; background:#e5e7eb; cursor:not-allowed;"></textarea>
 
-      <!-- evidencia: se habilita solo si estado = Observación -->
       <label for="evidenciaIncidencia">Evidencia (imagen / archivo):</label>
-      <input id="evidenciaIncidencia"
-             type="file"
-             name="evidencia"
-             disabled
-             style="
-               width:100%;
-               margin-bottom:15px;
-               background:#e5e7eb;
-               cursor:not-allowed;
-             ">
+      <input id="evidenciaIncidencia" type="file" name="evidencia" disabled
+        style="width:100%; margin-bottom:15px; background:#e5e7eb; cursor:not-allowed;">
 
       <button type="submit"
-              style="
-                margin-top:5px;
-                width:100%;
-                padding:10px;
-                background:#1b7f6b;
-                color:white;
-                border:none;
-                border-radius:6px;
-                cursor:pointer;
-                font-weight:600;
-              ">
+        style="margin-top:5px; width:100%; padding:10px; background:#1b7f6b; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">
         Guardar incidencia
       </button>
-
     </form>
-
   </div>
 </div>
 
-
-
-<!-- MODAL VER RESPUESTA-->
-
-
+<!-- MODAL VER RESPUESTA -->
 <div id="modalRespuesta" style="
     display:none; 
     position:fixed; 
@@ -959,57 +754,34 @@ document.addEventListener("DOMContentLoaded", () => {
     z-index:11000; 
     justify-content:center; 
     align-items:center;">
-    
-    <div style="background:white; padding:20px; border-radius:10px; width:480px; position:relative;">
-        
-        <button id="cerrarModalRespuesta"
-                style="position:absolute; top:10px; right:10px; background:#eee; border:none; border-radius:4px;">
-            ✕
-        </button>
+  <div style="background:white; padding:20px; border-radius:10px; width:480px; position:relative;">
+    <button id="cerrarModalRespuesta"
+      style="position:absolute; top:10px; right:10px; background:#eee; border:none; border-radius:4px;">✕</button>
 
-        <h3 style="margin-bottom:8px;">Respuesta del administrador</h3>
+    <h3 style="margin-bottom:8px;">Respuesta del administrador</h3>
+    <p id="textoRespuesta" style="white-space:pre-wrap;"></p>
 
-        <p id="textoRespuesta" style="white-space:pre-wrap;"></p>
+    <h4>Evidencia enviada:</h4>
+    <div id="zonaEvidenciaRespuesta">—</div>
 
-        <h4>Evidencia enviada:</h4>
-        <div id="zonaEvidenciaRespuesta">
-            —
-        </div>
+    <p><strong>Fecha de respuesta:</strong> <span id="fechaRespuesta">—</span></p>
 
-        <p>
-        <strong>Fecha de respuesta:</strong>
-        <span id="fechaRespuesta">—</span>
-        </p>
+    <h4 style="margin-top:20px;">Actualizar estado:</h4>
+    <form method="post" action="{% url 'actualizar_estado_control_interno' %}">
+      {% csrf_token %}
+      <input type="hidden" name="id_incidencia" id="idIncidenciaEstado">
 
-        <h4 style="margin-top:20px;">Actualizar estado:</h4>
+      <select name="nuevo_estado" required>
+        <option value="">Seleccione...</option>
+        <option value="resuelto">Resuelto</option>
+        <option value="observado">Observado</option>
+      </select>
 
-        <form method="post" action="{% url 'actualizar_estado_control_interno' %}">
-            {% csrf_token %}
-            <input type="hidden" name="id_incidencia" id="idIncidenciaEstado">
-
-            <select name="nuevo_estado" required>
-                <option value="">Seleccione...</option>
-                <option value="resuelto">Resuelto</option>
-                <option value="observado">Observado</option>
-            </select>
-
-            <button type="submit"
-                    style="margin-left:10px; background:#0d9488; color:white; padding:6px 10px; border:none; border-radius:6px;">
-                Guardar
-            </button>
-        </form>
-    </div>
+      <button type="submit"
+        style="margin-left:10px; background:#0d9488; color:white; padding:6px 10px; border:none; border-radius:6px;">
+        Guardar
+      </button>
+    </form>
+  </div>
 </div>
-
-
-
-
-
-
 {% endblock %}
-
-
-
-
-
-
