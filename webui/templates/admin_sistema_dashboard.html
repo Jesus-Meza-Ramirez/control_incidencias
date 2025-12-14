@@ -3,7 +3,6 @@
 
 {% block head_css %}
 <style>
-  /* ===== layout base (hereda tu estructura) ===== */
   html, body { height: 100%; margin: 0; overflow: hidden; }
   body { background: #eef2f3; }
 
@@ -15,7 +14,6 @@
     margin-left:calc(50% - 50vw);
   }
 
-  /* ===== sidebar ===== */
   .sidebar{ background:#1b7f6b; color:#fff; padding:20px 0; }
   .brand{ font-weight:800; text-align:center; margin:6px 0 12px; letter-spacing:.5px; }
   .menu{ list-style:none; margin:0; padding:6px 0; }
@@ -25,10 +23,8 @@
   }
   .menu a:hover{ background:#166b5a; }
 
-  /* ===== main ===== */
   .main{ background:#f7f9fa; padding:24px 32px; overflow:auto; }
 
-  /* barra verde superior */
   .title-strip{
     background:#2a9c86; color:#fff; font-weight:900; letter-spacing:.5px;
     padding:18px; border-radius:10px; text-align:center; margin-bottom:18px;
@@ -37,7 +33,6 @@
 
   .hello{ color:#324b4a; margin:8px 0 18px; font-size:18px; }
 
-  /* ===== botones de acciones ===== */
   .actions-bar{ display:flex; gap:14px; flex-wrap:wrap; margin:10px 0 18px; }
   .btn{
     border:0; border-radius:22px; padding:10px 20px; font-weight:700; cursor:pointer;
@@ -48,7 +43,12 @@
   .btn-sync{ background:#f5a524; }
   .btn-del{ background:#db3a62; }
 
-  /* ===== tabla ===== */
+  .btn-table{
+    padding:6px 12px;
+    font-size:13px;
+    border-radius:999px;
+  }
+
   .table-card{
     background:#ffffff; border-radius:14px; padding:14px;
     box-shadow:0 6px 18px rgba(0,0,0,.06);
@@ -65,9 +65,66 @@
   .tag-on{ background:#e8f7ee; color:#1e7d3f; padding:3px 10px; border-radius:999px; font-weight:700; font-size:12px; }
   .tag-off{ background:#fdecec; color:#b21c1c; padding:3px 10px; border-radius:999px; font-weight:700; font-size:12px; }
 
-  /* ===== responsive ===== */
-  @media (max-width:1024px){ .layout{ grid-template-columns:200px 1fr; } }
-  @media (max-width:768px){ .layout{ grid-template-columns:1fr; } .sidebar{ position:static; width:100%; } }
+  .modal-backdrop{
+    position:fixed;
+    inset:0;
+    background:rgba(15,23,42,.45);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:50;
+  }
+  .modal-box{
+    background:#ffffff;
+    border-radius:14px;
+    box-shadow:0 20px 40px rgba(15,23,42,.25);
+    width:100%;
+    max-width:600px;
+    padding:20px 22px;
+  }
+  .modal-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:12px;
+  }
+  .modal-title{
+    font-size:18px;
+    font-weight:700;
+    color:#111827;
+  }
+  .modal-close{
+    border:0;
+    background:transparent;
+    font-size:22px;
+    cursor:pointer;
+    line-height:1;
+  }
+  .modal-row{
+    margin-bottom:12px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+  }
+  .modal-row label{
+    font-weight:600;
+    font-size:14px;
+    color:#374151;
+  }
+  .modal-row input,
+  .modal-row select{
+    border:1px solid #d1d5db;
+    border-radius:8px;
+    padding:8px 10px;
+    font-size:14px;
+  }
+  .modal-footer{
+    margin-top:14px;
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+    align-items:center;
+  }
 </style>
 
 <div class="layout">
@@ -76,10 +133,8 @@
     <div class="brand">JAKSA</div>
     <ul class="menu">
       <li><a href="{% url 'panel_admin_sistema' %}">Dashboard</a></li>
-      <li><a href="{% url 'panel_admin_sistema' %}">Panel General</a></li>
-      <li><a href="#">Administrar usuario</a></li>
-      <li><a href="#">Consultar incidencia</a></li>
-      <li><a href="#">Reportes</a></li>
+      <li><a href="{% url 'panel_boleteros' %}">Boleteros/Cajeros</a></li>
+      <li><a href="{% url 'panel_incidencias' %}">Incidencias</a></li>
       <li><a href="{% url 'logout' %}">Cerrar sesión</a></li>
     </ul>
   </aside>
@@ -89,12 +144,10 @@
     <div class="title-strip">Sistema de control de incidencias</div>
     <p class="hello">Administrador del sistema — Bienvenido {{ usuario_nombre }}</p>
 
-    <!-- Botones -->
+    <!-- Botones superiores (solo usamos Agregar, los otros quedan por ahora) -->
     <div class="actions-bar">
-      <button class="btn btn-add" type="button">Agregar</button>
-      <button class="btn btn-edit" type="button">Editar</button>
-      <button class="btn btn-sync" type="button">Actualizar</button>
-      <button class="btn btn-del" type="button">Eliminar</button>
+      <button id="btnOpenUserModal" class="btn btn-add" type="button">Agregar nuevo usuario</button>
+
     </div>
 
     <!-- Tabla -->
@@ -109,6 +162,7 @@
               <th style="width:160px">Rol</th>
               <th style="width:160px">Terminal</th>
               <th style="width:120px; text-align:center;">Activo</th>
+              <th style="width:120px; text-align:center;">Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -118,10 +172,7 @@
                 <td>{{ u.nombre }}</td>
                 <td>{{ u.usuario_login }}</td>
                 <td>{{ u.rol }}</td>
-                <td>
-                  {# admite string o FK con nombre #}
-                  {% if u.terminal.nombre %}{{ u.terminal.nombre }}{% else %}{{ u.terminal }}{% endif %}
-                </td>
+                <td>{{ u.terminal }}</td>
                 <td style="text-align:center;">
                   {% if u.activo %}
                     <span class="tag-on">Sí</span>
@@ -129,16 +180,35 @@
                     <span class="tag-off">No</span>
                   {% endif %}
                 </td>
+                <td style="text-align:center;">
+                  <button
+                    type="button"
+                    class="btn btn-edit btn-table btn-row-edit"
+                    data-id="{{ u.id }}"
+                    data-nombre="{{ u.nombre|escapejs }}"
+                    data-usuario="{{ u.usuario_login|escapejs }}"
+                    data-pass="{{ u.contrasena|escapejs }}"
+                    data-rol="{{ u.rol }}"
+                    data-terminal="{{ u.terminal_id }}"
+                    data-activo="{{ u.activo_raw }}"
+                    data-fecha="{{ u.fecha_ingreso|date:'d-m-Y' }}"
+                  >
+                    Editar
+                  </button>
+                </td>
               </tr>
             {% empty %}
-              <tr><td colspan="6" style="text-align:center; color:#6b7280;">No hay usuarios</td></tr>
+              <tr>
+                <td colspan="7" style="text-align:center; color:#6b7280;">
+                  No hay usuarios
+                </td>
+              </tr>
             {% endfor %}
           </tbody>
         </table>
       </div>
     </div>
 
-    {# Paginación opcional si envías page_obj #}
     {% if page_obj %}
       <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-top:10px;">
         {% if page_obj.has_previous %}
@@ -152,6 +222,179 @@
         {% endif %}
       </div>
     {% endif %}
+
+    <!-- Modal: Crear / Editar usuario -->
+    <div id="userModal" class="modal-backdrop">
+      <div class="modal-box">
+        <div class="modal-header">
+          <h3 class="modal-title" id="userModalTitle">Registrar nuevo usuario</h3>
+          <button type="button" id="closeUserModal" class="modal-close">&times;</button>
+        </div>
+
+        <form method="post" autocomplete="off" id="userForm">
+          {% csrf_token %}
+          <input type="hidden" name="id_usuario" id="userIdField">
+          <input type="hidden" name="accion" id="accionField" value="create">
+
+          <div class="modal-row">
+            <label>Nombre completo</label>
+            <input type="text" name="nombre" id="nombreField" required autocomplete="off">
+          </div>
+
+          <div class="modal-row">
+            <label>Inicio de sesión de usuario</label>
+            <input type="text" name="usuario_login" id="usuarioField" required autocomplete="off">
+          </div>
+
+          <div class="modal-row">
+            <label>Contraseña</label>
+            <input type="password" name="contrasena" id="passField" required autocomplete="new-password">
+          </div>
+
+          <div class="modal-row">
+            <label>Rol</label>
+            <select name="rol" id="rolField" required>
+              <option value="">Seleccione…</option>
+              <option value="admin_terminal">Administrador de Terminal</option>
+              <option value="admin_sistema">Administrador del Sistema</option>
+              <option value="control_interno">Control Interno</option>
+            </select>
+          </div>
+
+          <div class="modal-row">
+            <label>Terminal (solo si aplica)</label>
+            <select name="id_terminal" id="terminalField">
+              <option value="">— Sin terminal —</option>
+              {% for t in terminales %}
+                <option value="{{ t.id_terminal }}">{{ t.nombre_terminal }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="modal-row">
+            <label>
+              <input type="checkbox" name="activo" id="activoField" checked>
+              Usuario activo
+            </label>
+          </div>
+
+          <div class="modal-row">
+            <label>Fecha de ingreso</label>
+            <input type="text"
+                   id="fechaIngresoField"
+                   value="{{ hoy|date:'d-m-Y' }}"
+                   data-today="{{ hoy|date:'d-m-Y' }}"
+                   disabled>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button"
+                    class="btn btn-del"
+                    id="deleteUserBtn"
+                    style="margin-right:auto; display:none;">
+              Eliminar
+            </button>
+
+            <button type="submit" class="btn btn-add">Guardar</button>
+            <button type="button" class="btn btn-del" id="cancelUserModal">Cancelar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
   </section>
 </div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    const modal       = document.getElementById('userModal');
+    const openBtn     = document.getElementById('btnOpenUserModal');
+    const closeBtn    = document.getElementById('closeUserModal');
+    const cancelBtn   = document.getElementById('cancelUserModal');
+    const form        = document.getElementById('userForm');
+
+    const titleEl     = document.getElementById('userModalTitle');
+    const idField     = document.getElementById('userIdField');
+    const accionField = document.getElementById('accionField');
+    const nombreField = document.getElementById('nombreField');
+    const usuarioField= document.getElementById('usuarioField');
+    const passField   = document.getElementById('passField');
+    const rolField    = document.getElementById('rolField');
+    const terminalField = document.getElementById('terminalField');
+    const activoField = document.getElementById('activoField');
+    const fechaField  = document.getElementById('fechaIngresoField');
+    const deleteBtn   = document.getElementById('deleteUserBtn');
+
+    function openCreateModal(){
+      if (!modal) return;
+      form.reset();
+
+      accionField.value = 'create';
+      idField.value = '';
+      titleEl.textContent = 'Registrar nuevo usuario';
+
+      if (activoField) activoField.checked = true;
+      if (fechaField) {
+        const hoy = fechaField.getAttribute('data-today');
+        fechaField.value = hoy;
+      }
+
+      if (deleteBtn) deleteBtn.style.display = 'none';
+
+      modal.style.display = 'flex';
+    }
+
+    function openEditModal(btn){
+      if (!modal) return;
+
+      accionField.value = 'update';
+      idField.value = btn.dataset.id || '';
+      titleEl.textContent = 'Editar usuario';
+
+      nombreField.value  = btn.dataset.nombre || '';
+      usuarioField.value = btn.dataset.usuario || '';
+      passField.value    = btn.dataset.pass || '';
+      rolField.value     = btn.dataset.rol || '';
+      terminalField.value= btn.dataset.terminal || '';
+      activoField.checked = (btn.dataset.activo === '1');
+      if (fechaField) fechaField.value = btn.dataset.fecha || '';
+
+      if (deleteBtn) deleteBtn.style.display = 'inline-block';
+
+      modal.style.display = 'flex';
+    }
+
+    function closeModal(){
+      if (modal) modal.style.display = 'none';
+    }
+
+    if (openBtn)  openBtn.addEventListener('click', openCreateModal);
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+
+    if (modal) {
+      modal.addEventListener('click', function(e){
+        if (e.target === modal) closeModal();
+      });
+    }
+
+    // Botones "Editar" por fila
+    document.querySelectorAll('.btn-row-edit').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        openEditModal(btn);
+      });
+    });
+
+    // Eliminar usuario desde el modal
+    if (deleteBtn) {
+      deleteBtn.addEventListener('click', function(){
+        if (!idField.value) return;
+        if (confirm('¿Seguro que deseas eliminar este usuario?')) {
+          accionField.value = 'delete';
+          form.submit();
+        }
+      });
+    }
+  });
+</script>
 {% endblock %}

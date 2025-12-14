@@ -30,33 +30,31 @@
       <div class="form-card">
         <div class="logo"><img src="{% static 'img/logo_jaksa.png' %}" alt="JAKSA"></div>
         <div class="welcome">Bienvenido</div>
-        <form method="POST">
-            {% if messages %}
-  <ul style="list-style:none; padding:0; margin-bottom:12px;">
-    {% for message in messages %}
-      <li style="
-        background:#fee2e2;
-        color:#991b1b;
-        border:1px solid #fca5a5;
-        padding:10px;
-        border-radius:8px;
-        text-align:center;
-        font-weight:600;
-      ">
-        {{ message }}
-      </li>
-    {% endfor %}
-  </ul>
-{% endif %}
+        <form method="POST" autocomplete="off">
+            {% csrf_token %}
 
-          {% csrf_token %}
-          <label for="usuario">Usuario</label>
-          <input id="usuario" name="usuario" type="text" placeholder="Ingresa tu usuario" required>
-          <label for="contrasena">Contraseña</label>
-          <input id="contrasena" name="contrasena" type="password" placeholder="Ingresa tu contraseña" required>
-          <div class="forgot"><a href="#">¿Has olvidado tu contraseña?</a></div>
-          <button class="btn-login" type="submit">Iniciar sesión</button>
+            <label for="usuario">Usuario</label>
+            <input id="usuario"
+                  name="usuario"
+                  type="text"
+                  placeholder="Ingresa tu usuario"
+                  required
+                  autocomplete="off"
+                  autocapitalize="none"
+                  spellcheck="false">
+
+            <label for="contrasena">Contraseña</label>
+            <input id="contrasena"
+                  name="contrasena"
+                  type="password"
+                  placeholder="Ingresa tu contraseña"
+                  required
+                  autocomplete="new-password">
+
+            <div class="forgot"><a href="#">¿Has olvidado tu contraseña?</a></div>
+            <button class="btn-login" type="submit">Iniciar sesión</button>
         </form>
+
       </div>
     </div>
   </div>

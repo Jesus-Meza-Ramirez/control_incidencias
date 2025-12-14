@@ -92,6 +92,20 @@
   .badge.ok { background:#e8f7ee; color:#1e7d3f; }
   .badge.warn { background:#fff3cd; color:#7a5d00; }
 
+
+    /* Estado Pendiente (azulito) */
+  .badge.pending {
+
+    background:#f3e8ff;   /* lila claro */
+    color:#6b21a8;        /* lila fuerte */ 
+  }
+
+  /* Estado Resuelto (por si lo usas luego) */
+  .badge.done {
+    background:#dbeafe;   /* azul claro */
+    color:#1d4ed8;        /* azul fuerte */  
+  }
+
   /* ===== RESPONSIVE ===== */
   @media (max-width: 1024px) {
     .layout { grid-template-columns: 200px 1fr; }
@@ -133,6 +147,91 @@
     display: block;
 }
 
+
+
+.btn-solucion {
+  padding: 6px 10px;
+  font-size: 13px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  background: #2563eb;
+  color: #fff;
+  transition: background 0.2s;
+}
+
+.btn-solucion:hover {
+  background: #1d4ed8;
+}
+
+
+.card-link {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.card-link.card-active .card {
+  border: 2px solid #1b7f6b;
+  box-shadow: 0 0 0 1px rgba(27,127,107,0.25);
+}
+
+
+
+
+/* Cards por estado (mismo esquema que las badges) */
+.card-estado {
+    border-left: 5px solid transparent;
+    transition: transform .15s ease, box-shadow .15s ease;
+}
+
+.card-estado:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.10);
+}
+
+/* 👉 Conforme  = badge.ok */
+.card-conforme {
+    background: #e8f7ee;       /* igual que badge.ok */
+    border-color: #1e7d3f;     /* tono del texto */
+    color: #1e7d3f;
+}
+
+/* 👉 Observado = badge.warn */
+.card-observado {
+    background: #fff3cd;       /* igual que badge.warn */
+    border-color: #7a5d00;
+    color: #7a5d00;
+}
+
+/* 👉 Pendiente = badge.pending (lila) */
+.card-pendiente {
+    background: #f3e8ff;       /* igual que badge.pending */
+    border-color: #6b21a8;
+    color: #6b21a8;
+}
+
+/* 👉 Resuelto = badge.done (azul) */
+.card-resuelto {
+    background: #dbeafe;       /* igual que badge.done */
+    border-color: #1d4ed8;
+    color: #1d4ed8;
+}
+
+/* Card activa cuando hay filtro por ese estado */
+.card-link.card-active .card {
+    box-shadow: 0 0 0 3px rgba(0,0,0,0.15);
+    transform: scale(1.02);
+}
+
+/* Card neutro para el total */
+.card-total {
+    background: #e2e8f0;   /* gris clarito */
+    border-color: #475569; /* gris oscuro */
+    color: #334155;
+}
+
+
 </style>
 
 <div class="layout">
@@ -141,8 +240,7 @@
     <div class="brand">JAKSA</div>
     <ul class="menu">
       <li><a href="{% url 'panel_admin_terminal' %}">Dashboard</a></li>
-      <li><a href="#">Consultar incidencia</a></li>
-      <li><a href="#">Reportes</a></li>
+
       <li><a href="{% url 'logout' %}">Cerrar sesión</a></li>
     </ul>
   </aside>
@@ -153,32 +251,116 @@
     <p class="hello">Bienvenido {{ usuario_nombre }} — Terminal: <strong>{{ terminal_name }}</strong></p>
 
     <!-- Tarjetas resumen -->
-    <div class="cards">
-      <div class="card">
-        <h3>Incidencias activas</h3>
-        <p>{{ cards.activas }}</p>
+
+<!-- Tarjetas por estado (clic = filtro) -->
+<div class="cards" style="margin-top:10px;">
+
+
+  <a href="?estado_card=total"
+   class="card-link {% if estado_card == 'total' %}card-active{% endif %}">
+    <div class="card card-estado card-total">
+        <h3>Total de incidencias</h3>
+        <p>{{ cards.total }}</p>
+    </div>
+  </a>
+
+
+
+  <a href="?estado_card=conforme"
+     class="card-link {% if estado_card == 'conforme' %}card-active{% endif %}">
+    <div class="card card-estado card-conforme">
+      <h3>Conformes</h3>
+      <p>{{ cards.conformes }}</p>
+    </div>
+  </a>
+
+  <a href="?estado_card=observado"
+     class="card-link {% if estado_card == 'observado' %}card-active{% endif %}">
+    <div class="card card-estado card-observado">
+      <h3>Observados</h3>
+      <p>{{ cards.observadas }}</p>
+    </div>
+  </a>
+
+  <a href="?estado_card=pendiente"
+     class="card-link {% if estado_card == 'pendiente' %}card-active{% endif %}">
+    <div class="card card-estado card-pendiente">
+      <h3>Pendientes</h3>
+      <p>{{ cards.pendientes }}</p>
+    </div>
+  </a>
+
+  <a href="?estado_card=resuelto"
+     class="card-link {% if estado_card == 'resuelto' %}card-active{% endif %}">
+    <div class="card card-estado card-resuelto">
+      <h3>Resueltos</h3>
+      <p>{{ cards.resueltas }}</p>
+    </div>
+  </a>
+
+</div>
+
+
+
+
+  <form method="get"
+        style="background:#f1f5f9; padding:14px; border-radius:10px; margin-bottom:18px; overflow-x:auto;">
+
+    <div style="display:flex; gap:22px; align-items:flex-start; flex-wrap:wrap;">
+
+      <!-- FECHA INCIDENCIA -->
+      <div style="background:#e8f2ff; padding:10px 12px; border-radius:8px;">
+        <label style="display:block; font-size:14px; font-weight:700; margin-bottom:6px; color:#0057a3;">
+          📅 Fecha de incidencia
+        </label>
+
+        <div style="display:flex; gap:10px;">
+          <div style="display:flex; flex-direction:column;">
+            <label style="font-size:12px;">Desde</label>
+            <input type="date" name="f1" value="{{ f1 }}" style="padding:5px; min-width:130px;">
+          </div>
+
+          <div style="display:flex; flex-direction:column;">
+            <label style="font-size:12px;">Hasta</label>
+            <input type="date" name="f2" value="{{ f2 }}" style="padding:5px; min-width:130px;">
+          </div>
+        </div>
       </div>
-      <div class="card">
-        <h3>Incidencias pendientes</h3>
-        <p>{{ cards.pendientes }}</p>
+
+      <!-- FECHA REVISIÓN -->
+      <div style="background:#e8ffeb; padding:10px 12px; border-radius:8px;">
+        <label style="display:block; font-size:14px; font-weight:700; margin-bottom:6px; color:#0d6b28;">
+          📋 Fecha de revisión
+        </label>
+
+        <div style="display:flex; gap:10px;">
+          <div style="display:flex; flex-direction:column;">
+            <label style="font-size:12px;">Desde</label>
+            <input type="date" name="r1" value="{{ r1 }}" style="padding:5px; min-width:130px;">
+          </div>
+
+          <div style="display:flex; flex-direction:column;">
+            <label style="font-size:12px;">Hasta</label>
+            <input type="date" name="r2" value="{{ r2 }}" style="padding:5px; min-width:130px;">
+          </div>
+        </div>
       </div>
-      <div class="card">
-        <h3>Incidencias resueltas</h3>
-        <p>{{ cards.resueltas }}</p>
-      </div>
+
     </div>
 
-    <!-- Filtro por fecha -->
-    <form method="get" style="margin: 0 0 12px 0; display:flex; gap:8px; align-items:center;">
-      <label>Desde
-        <input type="date" name="rev_desde" value="{{ rev_desde }}">
-      </label>
-      <label>Hasta
-        <input type="date" name="rev_hasta" value="{{ rev_hasta }}">
-      </label>
-      <button type="submit">Filtrar</button>
-      <a href="{% url 'panel_admin_terminal' %}">Limpiar</a>
-    </form>
+    <div style="margin-top:18px; display:flex; gap:12px;">
+      <button type="submit"
+              style="padding:9px 16px; background:#1b7f6b; color:white; border:none; border-radius:6px; font-weight:600;">
+        Filtrar
+      </button>
+
+      <a href="{% url 'panel_admin_terminal' %}"
+        style="padding:8px 14px; background:#e2e8f0; color:#1e293b; border-radius:6px; font-weight:600; text-decoration:none;">
+        Limpiar
+      </a>
+    </div>
+  </form>
+
 
     <!-- Tabla -->
     <div class="table-wrap">
@@ -195,27 +377,35 @@
             <th>Motivo</th>
             <th>Fecha de revisión</th>
             <th>Evidencia</th>
+            <th>Acción</th>
           </tr>
         </thead>
         <tbody>
           {% for r in rows %}
           <tr>
-            <td>{{ r.fecha|date:"d-m-y" }}</td>
+            <td>{{ r.fecha_incidencia|date:"d-m-y" }}</td>
             <td>{{ r.nombre }}</td>
             <td>{{ r.usuario }}</td>
             <td>{{ r.cargo }}</td>
             <td>{{ r.terminal }}</td>
             <td>{{ r.control_interno }}</td>
             <td>
-              {% if r.estado == "Conforme" %}
-                <span class="badge ok">Conforme</span>
-              {% else %}
-                <span class="badge warn">Observación</span>
-              {% endif %}
+                {% if r.estado == "Conforme" %}
+                    <span class="badge ok">Conforme</span>
+                {% elif r.estado == "Observado" %}
+                    <span class="badge warn">Observado</span>
+                {% elif r.estado == "Pendiente" %}
+                    <span class="badge pending">Pendiente</span>
+                {% elif r.estado == "Resuelto" %}
+                    <span class="badge done">Resuelto</span>
+                {% else %}
+                    <span class="badge warn">{{ r.estado }}</span>
+                 {% endif %}
             </td>
+
             <td class="tooltip-container"><span class="motivo-preview">{{ r.motivo|truncatechars:30 }}</span>
             <div class="tooltip-box">{{ r.motivo }}</div></td>
-            <td>{{ r.fecha_revision|date:"d-m-Y" }}</td>
+            <td>{{ r.fecha_revision|date:"d-m-y" }}</td>
             <td class="actions">
               {% if r.evidencia %}
                 <a href="{{ r.evidencia }}" class="evidence-link" data-url="{{ r.evidencia }}">Ver</a>
@@ -223,6 +413,24 @@
                 —
               {% endif %}
             </td>
+
+            <td>
+              {% if r.estado == "Observado" %}
+                <button type="button"
+                        class="btn-solucion"
+                        data-id="{{ r.id_incidencia }}"
+                        data-motivo="{{ r.motivo|escapejs }}"
+                        data-evidencia="{{ r.evidencia }}">
+                  Atender
+                </button>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+
+
+
+
           </tr>
           {% empty %}
           <tr><td colspan="10" style="text-align:center; color:#6b7280;">No hay incidencias</td></tr>
@@ -247,10 +455,29 @@
     {% endif %}
   </section>
 </div>
-{% endblock %}
+
+
+
+
+
+
+
+
+
 
 <!-- Modal evidencia -->
-<div id="evidenceModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:9999; align-items:center; justify-content:center; padding:24px;">
+<div id="evidenceModal"
+     style="
+        display:none;
+        position:fixed;
+        inset:0;
+        background:rgba(0,0,0,.75);
+        z-index:11000;           /* 👈 más que el solutionModal */
+        align-items:center;
+        justify-content:center;
+        padding:24px;
+     ">
+
   <div style="position:relative; max-width:90vw; max-height:90vh;">
     <button id="closeEvidence"
             style="position:absolute; top:-12px; right:-12px; background:#fff; border:none; border-radius:999px; width:36px; height:36px; cursor:pointer; font-weight:700;">
@@ -261,42 +488,211 @@
   </div>
 </div>
 
+
+
+
+<!-- Modal solución -->
+<div id="solutionModal"
+     style="display:none; position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:10000; align-items:center; justify-content:center; padding:24px;">
+  <div style="background:#ffffff; border-radius:10px; max-width:520px; width:100%; padding:20px 22px; position:relative;">
+    <button id="closeSolution"
+            style="position:absolute; top:8px; right:8px; background:#e5e7eb; border:none; border-radius:999px; width:28px; height:28px; cursor:pointer; font-weight:700;">
+      ✕
+    </button>
+
+    <h3 style="margin:0 0 12px; font-size:18px; font-weight:700; color:#111827;">
+      Registrar solución
+    </h3>
+
+    <p style="font-size:13px; color:#4b5563; margin-bottom:8px;">
+      <strong>Motivo reportado:</strong>
+      <span id="motivoText" style="display:block; margin-top:4px;"></span>
+    </p>
+
+
+    <p>
+      <label style="display:block; margin-bottom:4px;">Evidencia:</label>
+      <span id="solutionEvidence">—</span>
+    </p>
+
+
+    <form id="solutionForm"
+          method="post"
+          enctype="multipart/form-data"
+          action="{% url 'resolver_incidencia' %}">
+      {% csrf_token %}
+      <input type="hidden" name="id_incidencia" id="incidenciaIdField">
+
+      <div style="margin-bottom:10px;">
+        <label for="solucionField" style="display:block; font-size:13px; margin-bottom:4px;">Respuesta del administrador</label>
+        <textarea id="solucionField"
+                  name="solucion_admin"
+                  rows="4"
+                  required
+                  style="width:100%; font-size:13px; padding:6px 8px; border-radius:6px; border:1px solid #d1d5db;"></textarea>
+      </div>
+
+      <div style="margin-bottom:10px;">
+        <label for="evidenciaSolField" style="display:block; font-size:13px; margin-bottom:4px;">Evidencia de solución (opcional)</label>
+        <input id="evidenciaSolField"
+               type="file"
+               name="evidencia_solucion"
+               accept="image/*,application/pdf"
+               style="font-size:13px;">
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label for="fechaSolField" style="display:block; font-size:13px; margin-bottom:4px;">Fecha de solución</label>
+        <!-- Solo para mostrar, NO se envía en el formulario -->
+        <input id="fechaSolField"
+              type="text"
+              readonly
+              style="font-size:13px; padding:4px 6px; border-radius:6px; border:1px solid #d1d5db; background:#f3f4f6; cursor:not-allowed;"/>
+      </div>
+
+
+      <div style="display:flex; justify-content:flex-end; gap:8px;">
+        <button type="button"
+                id="btnClearSolution"
+                style="border:1px solid #d1d5db; background:#f9fafb; border-radius:6px; padding:6px 12px; font-size:13px; cursor:pointer;">
+          Limpiar
+        </button>
+        <button type="submit"
+                style="border:none; background:#16a34a; color:#fff; border-radius:6px; padding:6px 14px; font-size:13px; cursor:pointer;">
+          Guardar solución
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+
+
+
+
+
 <script>
   (function () {
-    const modal = document.getElementById('evidenceModal');
-    const img = document.getElementById('evidenceImg');
-    const btnX = document.getElementById('closeEvidence');
-    const IMG_EXT = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp'];
 
-    function isImage(url) {
-      const u = (url || '').toLowerCase();
-      return IMG_EXT.some(ext => u.endsWith(ext));
+    // ====== helper para HOY en horario local (YYYY-MM-DD) ======
+    function getHoyLocalISO() {
+      const hoy = new Date();
+      const year  = hoy.getFullYear();
+      const month = String(hoy.getMonth() + 1).padStart(2, '0'); // 0–11
+      const day   = String(hoy.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
     }
 
-    function openModal(url) {
-      img.src = url;
-      modal.style.display = 'flex';
-    }
-
-    function closeModal() {
-      modal.style.display = 'none';
-      img.src = '';
-    }
-
-    btnX.addEventListener('click', closeModal);
-    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
-    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && modal.style.display === 'flex') closeModal(); });
-
+    // ====== EVIDENCIAS: SIEMPRE NUEVA PESTAÑA ======
     document.querySelectorAll('.evidence-link').forEach(a => {
-      a.addEventListener('click', (e) => {
-        const url = a.dataset.url || a.href;
-        if (isImage(url)) {
-          e.preventDefault();
-          openModal(url);
-        } else {
-          a.setAttribute('target', '_blank');
-        }
-      });
+      const url = a.dataset.url || a.href;
+      a.href = url;
+      a.target = '_blank';
+      a.rel = 'noopener';
     });
+
+    // ====== MODAL SOLUCIÓN ======
+    const solutionModal      = document.getElementById('solutionModal');
+    const closeSolutionBtn   = document.getElementById('closeSolution');
+    const solutionForm       = document.getElementById('solutionForm');
+    const incidenciaIdField  = document.getElementById('incidenciaIdField');
+    const motivoText         = document.getElementById('motivoText');
+    const fechaSolField      = document.getElementById('fechaSolField');
+    const solutionEvidence   = document.getElementById('solutionEvidence');
+
+    const solucionField      = document.getElementById('solucionField');
+    const evidenciaSolField  = document.getElementById('evidenciaSolField');
+    const clearSolutionBtn   = document.getElementById('btnClearSolution');
+
+    function openSolutionModal(btn) {
+      const id        = btn.dataset.id;
+      const motivo    = btn.dataset.motivo || '';
+      const evidencia = btn.dataset.evidencia || '';
+
+      if (incidenciaIdField) incidenciaIdField.value = id;
+      if (motivoText)        motivoText.textContent = motivo;
+
+      // 🔹 Evidencia: siempre link que abre en otra pestaña
+      if (solutionEvidence) {
+        if (evidencia) {
+          solutionEvidence.innerHTML =
+            '<a href="' + evidencia +
+            '" target="_blank" rel="noopener">Ver archivo</a>';
+        } else {
+          solutionEvidence.textContent = '—';
+        }
+      }
+
+      // Fecha de solución: hoy por defecto (si está vacío)
+      if (fechaSolField && !fechaSolField.value) {
+        const hoyLocal = getHoyLocalISO();
+        fechaSolField.value = hoyLocal;
+      }
+
+      if (solutionModal) solutionModal.style.display = 'flex';
+    }
+
+    function closeSolutionModal() {
+      if (solutionModal) solutionModal.style.display = 'none';
+      if (solutionForm)  solutionForm.reset();
+      if (solutionEvidence) solutionEvidence.textContent = '—';
+    }
+
+    // Botón "Limpiar": solo limpia texto y archivo, NO la fecha
+    if (clearSolutionBtn) {
+      clearSolutionBtn.addEventListener('click', () => {
+        if (solucionField)     solucionField.value = '';
+        if (evidenciaSolField) evidenciaSolField.value = '';
+      });
+    }
+
+    // Abrir modal al hacer clic en "Atender"
+    document.querySelectorAll('.btn-solucion').forEach(btn => {
+      btn.addEventListener('click', () => openSolutionModal(btn));
+    });
+
+    // Cerrar modal solución
+    if (closeSolutionBtn) {
+      closeSolutionBtn.addEventListener('click', closeSolutionModal);
+    }
+
+    if (solutionModal) {
+      solutionModal.addEventListener('click', (e) => {
+        if (e.target === solutionModal) closeSolutionModal();
+      });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' &&
+          solutionModal &&
+          solutionModal.style.display === 'flex') {
+        closeSolutionModal();
+      }
+    });
+
   })();
 </script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{% endblock %}
+
+
+
+
+
+
