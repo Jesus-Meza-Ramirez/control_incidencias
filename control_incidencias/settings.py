@@ -13,7 +13,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.environ.get("DJANGO_SECRET_KEY", "unsafe-secret-key")
 
 # En producción debe ser False
-DEBUG = os.environ.get("DJANGO_DEBUG", "0") == "1"
+DEBUG = os.environ.get("DJANGO_DEBUG", "0") == "0"
 
 # Modo seguro (para cuando tengas HTTPS). Por ahora déjalo en 0 en el servidor.
 # Ejemplo: export DJANGO_SECURE=1  (cuando ya tengas SSL)

@@ -1,245 +1,20 @@
-{% extends "base_panel.html" %}
-{% block title %}Panel | Administrador de Terminal{% endblock %}
-
-{% block head_css %}
-<style>
-  html, body {
-    height: 100%;
-    margin: 0;
-    overflow: hidden;
-  }
-
-  body { background: #0f1e25; }
-
-  .layout {
-    display: grid;
-    grid-template-columns: 240px 1fr;
-    width: 100vw;
-    min-height: 100vh;
-    margin: 0;
-    margin-left: calc(50% - 50vw);
-  }
-
-  /* ===== SIDEBAR ===== */
-  .sidebar {
-    background: #1b7f6b;
-    color: #fff;
-    padding: 20px 0;
-  }
-  .brand { font-weight: 800; text-align: center; margin: 6px 0 12px; letter-spacing: .5px; }
-  .menu { list-style: none; margin: 0; padding: 6px 0; }
-  .menu a {
-    display: block;
-    padding: 12px 18px;
-    color: #eafaf6;
-    text-decoration: none;
-    font-size: 15px;
-    border-radius: 8px;
-    margin: 2px 8px;
-  }
-  .menu a:hover { background: #166b5a; }
-
-  /* ===== MAIN CONTENT ===== */
-  .main {
-    background: #ffffff;
-    padding: 24px 32px;
-    overflow: auto;
-  }
-
-  .page-title {
-    background: #2a9c86;
-    color: #fff;
-    font-weight: 800;
-    padding: 14px 18px;
-    border-radius: 8px;
-    text-align: center;
-    margin-bottom: 18px;
-  }
-
-  .hello { margin: 8px 0 16px; color: #374151; }
-
-  /* ===== CARDS ===== */
-  .cards {
-    display: flex;
-    gap: 16px;
-    flex-wrap: wrap;
-    margin-bottom: 20px;
-  }
-  .card {
-    flex: 1;
-    min-width: 200px;
-    background: #fff;
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-    text-align: center;
-  }
-  .card h3 { font-size: 16px; color: #2a9c86; margin-bottom: 6px; }
-  .card p { font-size: 28px; font-weight: 800; margin: 0; color: #1b4f4a; }
-
-  /* ===== TABLE ===== */
-  .table-wrap {
-    max-height: 55vh;
-    overflow-y: auto;
-    background:#f9fafb;
-    border-radius:12px;
-    padding:14px;
-  }
-  table { width:100%; border-collapse:collapse; background:#fff; }
-  th, td { padding:12px 10px; border-bottom:1px solid #e5e7eb; font-size:14px; }
-  th { background:#e6f3f0; color:#0f5132; text-align:left; }
-  .badge { padding:4px 8px; border-radius:12px; font-size:12px; }
-  .badge.ok { background:#e8f7ee; color:#1e7d3f; }
-  .badge.warn { background:#fff3cd; color:#7a5d00; }
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Panel | administrador de terminal</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;600&display=swap">
+    {% load static %}
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 
 
-    /* Estado Pendiente (azulito) */
-  .badge.pending {
-
-    background:#f3e8ff;   /* lila claro */
-    color:#6b21a8;        /* lila fuerte */ 
-  }
-
-  /* Estado Resuelto (por si lo usas luego) */
-  .badge.done {
-    background:#dbeafe;   /* azul claro */
-    color:#1d4ed8;        /* azul fuerte */  
-  }
-
-  /* ===== RESPONSIVE ===== */
-  @media (max-width: 1024px) {
-    .layout { grid-template-columns: 200px 1fr; }
-  }
-  @media (max-width: 768px) {
-    .layout { grid-template-columns: 1fr; }
-    .sidebar { position: static; width: 100%; }
-  }
-
-  .tooltip-container {
-    position: relative;
-    cursor: pointer;
-}
-
-.motivo-preview {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 240px; /* Ajusta según la tabla */
-    display: inline-block;
-}
-
-.tooltip-box {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 999;
-    background: #ffffff;
-    padding: 10px 12px;
-    max-width: 320px;
-    border-radius: 6px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-    border: 1px solid #ddd;
-    white-space: normal;
-}
-
-.tooltip-container:hover .tooltip-box {
-    display: block;
-}
-
-
-
-.btn-solucion {
-  padding: 6px 10px;
-  font-size: 13px;
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  background: #2563eb;
-  color: #fff;
-  transition: background 0.2s;
-}
-
-.btn-solucion:hover {
-  background: #1d4ed8;
-}
-
-
-.card-link {
-  text-decoration: none;
-  color: inherit;
-  display: block;
-}
-
-.card-link.card-active .card {
-  border: 2px solid #1b7f6b;
-  box-shadow: 0 0 0 1px rgba(27,127,107,0.25);
-}
-
-
-
-
-/* Cards por estado (mismo esquema que las badges) */
-.card-estado {
-    border-left: 5px solid transparent;
-    transition: transform .15s ease, box-shadow .15s ease;
-}
-
-.card-estado:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.10);
-}
-
-/* 👉 Conforme  = badge.ok */
-.card-conforme {
-    background: #e8f7ee;       /* igual que badge.ok */
-    border-color: #1e7d3f;     /* tono del texto */
-    color: #1e7d3f;
-}
-
-/* 👉 Observado = badge.warn */
-.card-observado {
-    background: #fff3cd;       /* igual que badge.warn */
-    border-color: #7a5d00;
-    color: #7a5d00;
-}
-
-/* 👉 Pendiente = badge.pending (lila) */
-.card-pendiente {
-    background: #f3e8ff;       /* igual que badge.pending */
-    border-color: #6b21a8;
-    color: #6b21a8;
-}
-
-/* 👉 Resuelto = badge.done (azul) */
-.card-resuelto {
-    background: #dbeafe;       /* igual que badge.done */
-    border-color: #1d4ed8;
-    color: #1d4ed8;
-}
-
-/* Card activa cuando hay filtro por ese estado */
-.card-link.card-active .card {
-    box-shadow: 0 0 0 3px rgba(0,0,0,0.15);
-    transform: scale(1.02);
-}
-
-/* Card neutro para el total */
-.card-total {
-    background: #e2e8f0;   /* gris clarito */
-    border-color: #475569; /* gris oscuro */
-    color: #334155;
-}
-
-
-</style>
 
 <div class="layout">
   <!-- Sidebar -->
   <aside class="sidebar">
     <div class="brand">JAKSA</div>
     <ul class="menu">
-      <li><a href="{% url 'panel_admin_terminal' %}">Dashboard</a></li>
+      <li><a href="{% url 'panel_admin_terminal' %}">Panel Principal</a></li>
 
       <li><a href="{% url 'logout' %}">Cerrar sesión</a></li>
     </ul>
@@ -248,6 +23,9 @@
   <!-- Main content -->
   <section class="main">
     <div class="page-title">Sistema de control de incidencias</div>
+        <button class="hamburger" id="btnMenu">
+            ☰
+        </button>
     <p class="hello">Bienvenido {{ usuario_nombre }} — Terminal: <strong>{{ terminal_name }}</strong></p>
 
     <!-- Tarjetas resumen -->
@@ -303,63 +81,59 @@
 
 
 
-  <form method="get"
-        style="background:#f1f5f9; padding:14px; border-radius:10px; margin-bottom:18px; overflow-x:auto;">
+  <!-- === FILTROS DE BUSQUEDA === -->
+  <form method="get" class="filters">
+    <h3 class="filters__title">Filtros avanzados</h3>
 
-    <div style="display:flex; gap:22px; align-items:flex-start; flex-wrap:wrap;">
+    <div class="filters__grid">
 
-      <!-- FECHA INCIDENCIA -->
-      <div style="background:#e8f2ff; padding:10px 12px; border-radius:8px;">
-        <label style="display:block; font-size:14px; font-weight:700; margin-bottom:6px; color:#0057a3;">
-          📅 Fecha de incidencia
-        </label>
+      <!-- Fecha Incidencia -->
+      <div class="filters__card filters__card--blue">
+        <label class="filters__label filters__label--blue">📅 Fecha de incidencia</label>
 
-        <div style="display:flex; gap:10px;">
-          <div style="display:flex; flex-direction:column;">
-            <label style="font-size:12px;">Desde</label>
-            <input type="date" name="f1" value="{{ f1 }}" style="padding:5px; min-width:130px;">
+        <div class="filters__row">
+          <div class="filters__field">
+            <label class="filters__small">Desde</label>
+            <input type="date" name="f1" value="{{ f1 }}" class="filters__input filters__input--date">
           </div>
 
-          <div style="display:flex; flex-direction:column;">
-            <label style="font-size:12px;">Hasta</label>
-            <input type="date" name="f2" value="{{ f2 }}" style="padding:5px; min-width:130px;">
+          <div class="filters__field">
+            <label class="filters__small">Hasta</label>
+            <input type="date" name="f2" value="{{ f2 }}" class="filters__input filters__input--date">
           </div>
         </div>
       </div>
 
-      <!-- FECHA REVISIÓN -->
-      <div style="background:#e8ffeb; padding:10px 12px; border-radius:8px;">
-        <label style="display:block; font-size:14px; font-weight:700; margin-bottom:6px; color:#0d6b28;">
-          📋 Fecha de revisión
-        </label>
+      <!-- Fecha Revisión -->
+      <div class="filters__card filters__card--green">
+        <label class="filters__label filters__label--green">📋 Fecha de revisión</label>
 
-        <div style="display:flex; gap:10px;">
-          <div style="display:flex; flex-direction:column;">
-            <label style="font-size:12px;">Desde</label>
-            <input type="date" name="r1" value="{{ r1 }}" style="padding:5px; min-width:130px;">
+        <div class="filters__row">
+          <div class="filters__field">
+            <label class="filters__small">Desde</label>
+            <input type="date" name="r1" value="{{ r1 }}" class="filters__input filters__input--date">
           </div>
 
-          <div style="display:flex; flex-direction:column;">
-            <label style="font-size:12px;">Hasta</label>
-            <input type="date" name="r2" value="{{ r2 }}" style="padding:5px; min-width:130px;">
+          <div class="filters__field">
+            <label class="filters__small">Hasta</label>
+            <input type="date" name="r2" value="{{ r2 }}" class="filters__input filters__input--date">
           </div>
         </div>
       </div>
 
     </div>
+  
 
     <div style="margin-top:18px; display:flex; gap:12px;">
-      <button type="submit"
-              style="padding:9px 16px; background:#1b7f6b; color:white; border:none; border-radius:6px; font-weight:600;">
+      <button type="submit"class="btn-filtrar">
         Filtrar
       </button>
 
-      <a href="{% url 'panel_admin_terminal' %}"
-        style="padding:8px 14px; background:#e2e8f0; color:#1e293b; border-radius:6px; font-weight:600; text-decoration:none;">
+      <a href="{% url 'panel_admin_terminal' %}" class="btn-limpiar">
         Limpiar
       </a>
     </div>
-  </form>
+</form>  
 
 
     <!-- Tabla -->
@@ -673,6 +447,19 @@
   })();
 </script>
 
+<script>
+  const btnMenu = document.getElementById('btnMenu');
+  const sidebar = document.querySelector('.sidebar');
+
+  btnMenu.addEventListener('click', () => {
+    sidebar.classList.toggle('open');
+  });
+  document.addEventListener('click', (e) => {
+  if (!sidebar.contains(e.target) && !btnMenu.contains(e.target)) {
+    sidebar.classList.remove('open');
+  }
+});
+</script>
 
 
 
@@ -689,7 +476,7 @@
 
 
 
-{% endblock %}
+
 
 
 

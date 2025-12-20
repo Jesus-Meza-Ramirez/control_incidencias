@@ -1,192 +1,12 @@
-{% extends "base_panel.html" %}
-{% block title %}Panel | Boleteros / Cajeros{% endblock %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Panel | Control Interno</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;600&display=swap">
+    {% load static %}
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 
-{% block head_css %}
-<style>
-  /* ==== LAYOUT GENERAL (igual admin_sistema) ==== */
-  html, body { height: 100%; margin: 0; overflow: hidden; }
-  body { background: #eef2f3; }
-
-  .layout{
-    display:grid;
-    grid-template-columns:240px 1fr;
-    width:100vw;
-    min-height:100vh;
-    margin:0;
-    margin-left:calc(50% - 50vw);
-  }
-
-  /* ==== SIDEBAR (igual admin_sistema) ==== */
-  .sidebar{ background:#1b7f6b; color:#fff; padding:20px 0; }
-  .brand{ font-weight:800; text-align:center; margin:6px 0 12px; letter-spacing:.5px; }
-  .menu{ list-style:none; margin:0; padding:6px 0; }
-  .menu a{
-    display:block; padding:12px 18px; color:#eafaf6; text-decoration:none;
-    font-size:15px; border-radius:8px; margin:2px 8px;
-  }
-  .menu a:hover{ background:#166b5a; }
-
-  /* ==== CONTENIDO ==== */
-  .main{
-    background:#ffffff;
-    padding:24px 32px;
-    overflow:hidden;          /* el scroll estará SOLO en la tabla */
-    display:flex;
-    flex-direction:column;
-    height:100vh;
-  }
-
-  .title-strip{
-    background:#2a9c86; color:#fff; font-weight:900; letter-spacing:.5px;
-    padding:18px; border-radius:10px; text-align:center; margin-bottom:18px;
-    font-size:24px;
-  }
-  .hello{ color:#324b4a; margin:8px 0 18px; font-size:18px; }
-
-  /* ==== FILTROS (copiado de control_interno) ==== */
-  .filtros-box{
-    background:#f1f5f9;
-    padding:14px;
-    border-radius:10px;
-    margin-bottom:18px;
-    border:1px solid #e2e8f0;
-    overflow-x:auto;
-  }
-  .filtros-box h3{
-    margin:0 0 12px 0;
-    color:#1b7f6b;
-    font-weight:700;
-  }
-  .grupo{
-    display:flex;
-    gap:22px;
-    align-items:flex-start;
-    flex-wrap:wrap;
-  }
-  .grupo-box{
-    padding:10px 12px;
-    border-radius:8px;
-  }
-  .grupo-box.azul{ background:#e8f2ff; }
-  .grupo-box.verde{ background:#e8ffeb; }
-  .grupo-box.blanco{
-    background:#ffffff;
-    border:1px solid #e2e8f0;
-  }
-  .grupo-box label.title{
-    display:block;
-    font-size:14px;
-    font-weight:700;
-    margin-bottom:6px;
-  }
-  .grupo-box label.small{
-    font-size:12px;
-  }
-  .grupo-box input,
-  .grupo-box select{
-    padding:5px;
-    min-width:130px;
-    font-size:14px;
-  }
-
-  /* Botones filtros */
-  .filtros-actions{
-    margin-top:18px;
-    display:flex;
-    gap:12px;
-  }
-  .btn-filtrar,
-  .btn-limpiar,
-  .btn-excel{
-    cursor:pointer;
-    border:none;
-    border-radius:6px;
-    font-weight:600;
-    padding:8px 14px;
-    text-decoration:none;
-    display:inline-block;
-  }
-  .btn-filtrar{
-    background:#1b7f6b;
-    color:#fff !important;
-  }
-  .btn-filtrar:hover{ background:#145c50; }
-  .btn-limpiar{
-    background:#e2e8f0;
-    color:#1e293b !important;
-  }
-  .btn-excel{
-    background:#0b66a0;
-    color:#fff !important;
-  }
-
-  /* ==== TABLA (igual control_interno) ==== */
-  .table-wrap{
-    flex:1;
-    overflow-y:auto;
-    overflow-x:auto;
-    background:#f9fafb;
-    padding:14px;
-    border-radius:12px;
-  }
-  table{ width:100%; border-collapse:collapse; background:#fff; }
-  th,td{ padding:12px 10px; border-bottom:1px solid #e5e7eb; font-size:14px; }
-  th{
-    background:#e6f3f0;
-    color:#0f5132;
-    text-align:left;
-  }
-
-  .badge{
-    padding:4px 8px;
-    border-radius:12px;
-    font-size:12px;
-  }
-  .badge.ok{ background:#e8f7ee; color:#1e7d3f; }
-  .badge.warn{ background:#fff3cd; color:#7a5d00; }
-  .badge.pending{ background:#f3e8ff; color:#6b21a8; }
-  .badge.done{ background:#dbeafe; color:#1d4ed8; }
-
-  /* Motivo con tooltip */
-  .tooltip-container{ position:relative; cursor:pointer; }
-  .motivo-preview{
-    white-space:nowrap;
-    overflow:hidden;
-    text-overflow:ellipsis;
-    max-width:240px;
-    display:inline-block;
-  }
-  .tooltip-box{
-    display:none;
-    position:absolute;
-    top:100%; left:0;
-    z-index:999;
-    background:#ffffff;
-    padding:10px 12px;
-    max-width:320px;
-    border-radius:6px;
-    box-shadow:0 2px 8px rgba(0,0,0,0.25);
-    border:1px solid #ddd;
-    white-space:normal;
-  }
-  .tooltip-container:hover .tooltip-box{ display:block; }
-
-  /* Paginación */
-  .paginacion{
-    margin-top:10px;
-    display:flex;
-    gap:8px;
-    align-items:center;
-    justify-content:flex-end;
-  }
-
-  /* Responsive */
-  @media (max-width:1024px){ .layout{ grid-template-columns:200px 1fr; } }
-  @media (max-width:768px){
-    .layout{ grid-template-columns:1fr; }
-    .sidebar{ position:static; width:100%; }
-  }
-</style>
 
 <div class="layout">
   <!-- Sidebar (menú igual que admin_sistema) -->
@@ -205,114 +25,131 @@
     <div class="title-strip">Sistema de control de incidencias</div>
     <p class="hello">Administrador del sistema — Gestión de Boleteros y Cajeros</p>
 
-    <!-- ==== FILTROS (mismo contexto que control_interno) ==== -->
-    <form method="get" class="filtros-box">
-      <h3>Filtros avanzados</h3>
+  <!-- === FILTROS DE BUSQUEDA === -->
+  <form method="get" class="filters">
+    <h3 class="filters__title">Filtros avanzados</h3>
 
-      <div class="grupo">
-        <!-- Fecha incidencia -->
-        <div class="grupo-box azul">
-          <label class="title">📅 Fecha de incidencia</label>
-          <div style="display:flex; gap:10px;">
-            <div style="display:flex; flex-direction:column;">
-              <label class="small">Desde</label>
-              <input type="date" name="f1" value="{{ f1 }}">
-            </div>
-            <div style="display:flex; flex-direction:column;">
-              <label class="small">Hasta</label>
-              <input type="date" name="f2" value="{{ f2 }}">
-            </div>
+    <div class="filters__grid">
+
+      <!-- Fecha Incidencia -->
+      <div class="filters__card filters__card--blue">
+        <label class="filters__label filters__label--blue">📅 Fecha de incidencia</label>
+
+        <div class="filters__row">
+          <div class="filters__field">
+            <label class="filters__small">Desde</label>
+            <input type="date" name="f1" value="{{ f1 }}" class="filters__input filters__input--date">
           </div>
-        </div>
 
-        <!-- Fecha revisión -->
-        <div class="grupo-box verde">
-          <label class="title">📋 Fecha de revisión</label>
-          <div style="display:flex; gap:10px;">
-            <div style="display:flex; flex-direction:column;">
-              <label class="small">Desde</label>
-              <input type="date" name="r1" value="{{ r1 }}">
-            </div>
-            <div style="display:flex; flex-direction:column;">
-              <label class="small">Hasta</label>
-              <input type="date" name="r2" value="{{ r2 }}">
-            </div>
-          </div>
-        </div>
-
-        <!-- Otros filtros -->
-        <div class="grupo-box blanco">
-          <label class="title">🔎 Otros filtros</label>
-          <div style="display:flex; gap:14px; flex-wrap:wrap;">
-
-            <!-- Terminal -->
-            <div style="display:flex; flex-direction:column;">
-              <label class="small">Terminal</label>
-              <select name="terminal" id="filtroTerminal">
-                <option value="">Todos</option>
-                {% for t in terminales %}
-                  <option value="{{ t.id_terminal }}"
-                    {% if terminal_selected == t.id_terminal|stringformat:'s' %}selected{% endif %}>
-                    {{ t.nombre_terminal }}
-                  </option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <!-- Estado -->
-            <div style="display:flex; flex-direction:column;">
-              <label class="small">Estado</label>
-              <select name="estado">
-                <option value="">Todos</option>
-                <option value="Conforme"  {% if estado == "Conforme"  %}selected{% endif %}>Conforme</option>
-                <option value="Observado" {% if estado == "Observado" %}selected{% endif %}>Observado</option>
-                <option value="Pendiente" {% if estado == "Pendiente" %}selected{% endif %}>Pendiente</option>
-                <option value="Resuelto"  {% if estado == "Resuelto"  %}selected{% endif %}>Resuelto</option>
-              </select>
-            </div>
-
-            <!-- Usuario (boletero/cajero) -->
-            <div style="display:flex; flex-direction:column;">
-              <label class="small">Usuario</label>
-              <select name="usuario" id="filtroUsuario">
-                <option value="">Todos</option>
-                {% for b in boleteros %}
-                  <option value="{{ b.usuario }}"
-                          data-terminal="{{ b.id_terminal_id }}"
-                          {% if usuario == b.usuario %}selected{% endif %}>
-                    {{ b.usuario }}
-                  </option>
-                {% endfor %}
-              </select>
-            </div>
-
-            <!-- Control interno (si lo quieres también aquí) -->
-            <div style="display:flex; flex-direction:column;">
-              <label class="small">Control interno</label>
-              <select name="ci">
-                <option value="">Todos</option>
-                {% for u in usuarios_ci %}
-                  <option value="{{ u.usuario_login }}"
-                    {% if ci == u.usuario_login %}selected{% endif %}>
-                    {{ u.usuario_login }}
-                  </option>
-                {% endfor %}
-              </select>
-            </div>
-
+          <div class="filters__field">
+            <label class="filters__small">Hasta</label>
+            <input type="date" name="f2" value="{{ f2 }}" class="filters__input filters__input--date">
           </div>
         </div>
       </div>
 
-      <!-- Botones de acción -->
-      <div class="filtros-actions">
-        <button type="submit" class="btn-filtrar">Filtrar</button>
-        <a href="{% url 'panel_incidencias' %}" class="btn-limpiar">Limpiar</a>
-        <a href="{% url 'export_excel' %}?{{ request.GET.urlencode }}" class="btn-excel">Exportar Excel</a>
-      </div>
-    </form>
+      <!-- Fecha Revisión -->
+      <div class="filters__card filters__card--green">
+        <label class="filters__label filters__label--green">📋 Fecha de revisión</label>
 
-    <!-- ==== TABLA (misma que control_interno) ==== -->
+        <div class="filters__row">
+          <div class="filters__field">
+            <label class="filters__small">Desde</label>
+            <input type="date" name="r1" value="{{ r1 }}" class="filters__input filters__input--date">
+          </div>
+
+          <div class="filters__field">
+            <label class="filters__small">Hasta</label>
+            <input type="date" name="r2" value="{{ r2 }}" class="filters__input filters__input--date">
+          </div>
+        </div>
+      </div>
+
+      <!-- Otros filtros -->
+      <div class="filters__card filters__card--white">
+        <label class="filters__label filters__label--dark">🔎 Otros filtros</label>
+
+        <div class="filters__row filters__row--wrap">
+          <div class="filters__field">
+            <label class="filters__small">Terminal</label>
+            <select name="terminal" id="filtroTerminal" class="filters__select filters__select--terminal">
+              <option value="">Todos</option>
+              {% for t in terminales %}
+              <option value="{{ t.id_terminal }}"
+                {% if terminal_selected == t.id_terminal|stringformat:'s' %}selected{% endif %}>
+                {{ t.nombre_terminal }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="filters__field">
+            <label class="filters__small">Estado</label>
+            <select name="estado" class="filters__select filters__select--estado">
+              <option value="">Todos</option>
+              <option value="Conforme"  {% if estado == "Conforme"  %}selected{% endif %}>Conforme</option>
+              <option value="Observado" {% if estado == "Observado" %}selected{% endif %}>Observado</option>
+              <option value="Pendiente" {% if estado == "Pendiente" %}selected{% endif %}>Pendiente</option>
+              <option value="Resuelto"  {% if estado == "Resuelto"  %}selected{% endif %}>Resuelto</option>
+            </select>
+          </div>
+
+          <div class="filters__field">
+            <label class="filters__small">Usuario</label>
+            <select name="usuario" id="filtroUsuario" class="filters__select filters__select--usuario">
+              <option value="">Todos</option>
+              {% for b in boleteros %}
+              <option value="{{ b.usuario }}"
+                data-terminal="{{ b.id_terminal_id }}"
+                {% if usuario == b.usuario %}selected{% endif %}>
+                {{ b.usuario }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="filters__field">
+            <label class="filters__small">Control interno</label>
+            <select name="ci" class="filters__select filters__select--ci">
+              <option value="">Todos</option>
+              {% for u in usuarios_ci %}
+              <option value="{{ u.usuario_login }}"
+                {% if ci == u.usuario_login %}selected{% endif %}>
+                {{ u.usuario_login }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  
+
+
+        <div style="margin-top:18px; display:flex; gap:12px;">
+            <button type="submit" class="btn-filtrar">
+                Filtrar</button>
+
+            <a href="{% url 'panel_control_interno' %}" class="btn-limpiar">
+                Limpiar
+            </a>
+
+            <a href="{% url 'export_excel' %}?{{ request.GET.urlencode }}" class="btn-excel">
+                Exportar Excel
+            </a>
+
+            <button type="submit"
+                name="produccion_hoy"
+                value="1"
+                style="padding:9px 16px; background:#4b5563; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">
+                Producción hoy
+            </button>
+        </div>
+</form> 
+
+    <!-- TABLA -->
     <div class="table-wrap">
       <table>
         <thead>
@@ -330,86 +167,91 @@
             <th>Respuesta</th>
           </tr>
         </thead>
+
         <tbody>
           {% for r in rows %}
-            <tr>
-              <td>{{ r.fecha|date:"d-m-y" }}</td>
-              <td>{{ r.nombre }}</td>
-              <td>{{ r.usuario }}</td>
-              <td>{{ r.cargo }}</td>
-              <td>{{ r.terminal }}</td>
-              <td>{{ r.control_interno }}</td>
+          <tr>
+            <td>{{ r.fecha|date:"d-m-y" }}</td>
+            <td>{{ r.nombre }}</td>
+            <td>{{ r.usuario }}</td>
+            <td>{{ r.cargo }}</td>
+            <td>{{ r.terminal }}</td>
+            <td>{{ r.control_interno }}</td>
 
-              <td>
-                {% if r.estado == "Conforme" %}
-                  <span class="badge ok">Conforme</span>
-                {% elif r.estado == "Observado" %}
-                  <span class="badge warn">Observado</span>
-                {% elif r.estado == "Pendiente" %}
-                  <span class="badge pending">Pendiente</span>
-                {% elif r.estado == "Resuelto" %}
-                  <span class="badge done">Resuelto</span>
-                {% else %}
-                  <span class="badge warn">{{ r.estado }}</span>
-                {% endif %}
-              </td>
+            <td>
+              {% if r.estado == "Conforme" %}
+                <span class="badge ok">Conforme</span>
+              {% elif r.estado == "Observado" %}
+                <span class="badge warn">Observado</span>
+              {% elif r.estado == "Pendiente" %}
+                <span class="badge pending">Pendiente</span>
+              {% elif r.estado == "Resuelto" %}
+                <span class="badge done">Resuelto</span>
+              {% else %}
+                <span class="badge warn">{{ r.estado }}</span>
+              {% endif %}
+            </td>
 
-              <td class="tooltip-container">
-                <span class="motivo-preview">{{ r.motivo|truncatechars:30 }}</span>
-                <div class="tooltip-box">{{ r.motivo }}</div>
-              </td>
+            <td class="tooltip-container">
+              <span class="motivo-preview">{{ r.motivo|truncatechars:30 }}</span>
+              <div class="tooltip-box">{{ r.motivo }}</div>
+            </td>
 
-              <td>{{ r.fecha_revision|date:"d-m-Y" }}</td>
+            <td>{{ r.fecha_revision|date:"d-m-Y" }}</td>
 
-              <td>
-                {% if r.evidencia %}
-                  <a href="{{ r.evidencia }}" target="_blank">Ver</a>
-                {% else %}
-                  —
-                {% endif %}
-              </td>
+            <td>
+              {% if r.evidencia %}
+                <a href="{{ r.evidencia }}" target="_blank" rel="noopener">Ver</a>
+              {% else %}
+                —
+              {% endif %}
+            </td>
 
-              <td>
-                {% if r.estado == "Pendiente" and r.solucion_admin %}
-                  <button class="btn-filtrar"
-                          style="padding:4px 8px; font-size:12px;"
-                          data-respuesta="{{ r.solucion_admin|escapejs }}"
-                          data-evidencia="{{ r.evidencia_solucion }}"
-                          data-fecha-respuesta="{{ r.fecha_solucion|date:'d-m-Y' }}">
-                    Ver respuesta
-                  </button>
-                {% else %}
-                  —
-                {% endif %}
-              </td>
-            </tr>
+            <td>
+              {% if r.estado == "Pendiente" and r.solucion_admin %}
+                <button class="btn-respuesta"
+                        data-respuesta="{{ r.solucion_admin|escapejs }}"
+                        data-evidencia="{{ r.evidencia_solucion }}"
+                        data-id="{{ r.id_incidencia }}"
+                        data-fecha-respuesta="{{ r.fecha_solucion|date:'d-m-Y' }}">
+                  Ver respuesta
+                </button>
+              {% else %}
+                —
+              {% endif %}
+            </td>
+          </tr>
           {% empty %}
-            <tr>
-              <td colspan="11" style="text-align:center; color:#6b7280;">No hay incidencias</td>
-            </tr>
+          <tr>
+            <td colspan="11" style="text-align:center; color:#6b7280;">
+              No hay incidencias
+            </td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
 
+    <!-- PAGINACIÓN FUERA DEL SCROLL -->
     {% if page_obj %}
-      <div class="paginacion">
-        {% if page_obj.has_previous %}
-          <a href="?page=1{{ preserved }}">&laquo; Primero</a>
-          <a href="?page={{ page_obj.previous_page_number }}{{ preserved }}">Anterior</a>
-        {% endif %}
-        <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
-        {% if page_obj.has_next %}
-          <a href="?page={{ page_obj.next_page_number }}{{ preserved }}">Siguiente</a>
-          <a href="?page={{ page_obj.paginator.num_pages }}{{ preserved }}">Último &raquo;</a>
-        {% endif %}
-      </div>
+    <div style="display:flex; gap:8px; align-items:center; justify-content:flex-end; margin-top:10px;">
+      {% if page_obj.has_previous %}
+        <a href="?page=1{{ preserved }}">&laquo; Primero</a>
+        <a href="?page={{ page_obj.previous_page_number }}{{ preserved }}">Anterior</a>
+      {% endif %}
+
+      <span>Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+
+      {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}{{ preserved }}">Siguiente</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}{{ preserved }}">Último &raquo;</a>
+      {% endif %}
+    </div>
     {% endif %}
   </section>
 </div>
-{% endblock %}
 
-{% block scripts %}
+
 <script>
   // Sincronizar filtro Terminal <-> Usuario (igual que en control_interno)
   document.addEventListener("DOMContentLoaded", () => {
@@ -450,4 +292,4 @@
     }
   });
 </script>
-{% endblock %}
+

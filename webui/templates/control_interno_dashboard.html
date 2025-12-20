@@ -1,254 +1,22 @@
-{% extends "base_panel.html" %}
-{% block title %}Panel | Control Interno{% endblock %}
-
-{% block head_css %}
-<style>
-  /* =======================
-     SCROLL GLOBAL (BODY)
-     ======================= */
-  html, body {
-    height: 100%;
-    margin: 0;
-    overflow-y: auto;   /* ✅ scroll global */
-    overflow-x: hidden;
-  }
-
-  body { background: #0f1e25; }
-
-  /* ⚠️ Si tu base.html tiene un contenedor con max-width, neutralízalo aquí */
-  .page, .container, .wrapper {
-    max-width: none !important;
-    margin: 0 !important;
-    padding: 0 !important;
-  }
-
-  /* =======================
-     LAYOUT PANTALLA COMPLETA
-     ======================= */
-  .layout {
-    display: grid;
-    grid-template-columns: 240px 1fr; /* sidebar | contenido */
-    gap: 0;
-    width: 100vw;
-    min-height: 100vh;
-    height: auto; /* ✅ clave para no forzar espacios extra */
-    margin: 0;
-
-    /* Truco para “escapar” cualquier contenedor centrado del base.html */
-    margin-left: calc(50% - 50vw);
-  }
-
-  /* =======================
-     SIDEBAR
-     ======================= */
-  .sidebar {
-    background: #1b7f6b;
-    color: #fff;
-    padding: 20px 0;
-    border-radius: 0;
-  }
-  .brand {
-    font-weight: 800;
-    text-align: center;
-    margin: 6px 0 12px;
-    letter-spacing: .5px;
-  }
-  .menu { list-style: none; margin: 0; padding: 6px 0; }
-  .menu a {
-    display: block;
-    padding: 12px 18px;
-    color: #eafaf6;
-    text-decoration: none;
-    font-size: 15px;
-    border-radius: 8px;
-    margin: 2px 8px;
-  }
-  .menu a:hover { background: #166b5a; }
-
-  /* =======================
-     CONTENIDO
-     ======================= */
-  .main {
-    background: #ffffff;
-    padding: 24px 32px;
-    border-radius: 0;
-    box-shadow: none;
-
-    display: flex;
-    flex-direction: column;
-
-    height: auto;       /* ✅ NO forzar 100vh */
-    min-height: 100vh;  /* ✅ se ve completo, pero no crea “vacío” raro */
-    overflow: visible;
-  }
-
-  .page-title {
-    background: #2a9c86;
-    color: #fff;
-    font-weight: 800;
-    padding: 14px 18px;
-    border-radius: 8px;
-    text-align: center;
-    margin-bottom: 18px;
-  }
-  .hello { margin: 8px 0 16px; color: #374151; }
-
-  /* =======================
-     TABLA CON SCROLL INTERNO
-     ======================= */
-  .table-wrap {
-    flex: 1;
-    background:#f9fafb;
-    border-radius:12px;
-    padding:14px;
-
-    max-height: 60vh;   /* ✅ ajusta si quieres más/menos altura visible */
-    overflow-y: auto;   /* ✅ scroll de tabla */
-    overflow-x: auto;
-  }
-
-  table { width:100%; border-collapse:collapse; background:#fff; }
-  th, td { padding:12px 10px; border-bottom:1px solid #e5e7eb; font-size:14px; }
-  th { background:#e6f3f0; color:#0f5132; text-align:left; }
-
-  .badge { padding:4px 8px; border-radius:12px; font-size:12px; }
-  .badge.ok { background:#e8f7ee; color:#1e7d3f; }
-  .badge.warn { background:#fff3cd; color:#7a5d00; }
-  .badge.pending { background:#f3e8ff; color:#6b21a8; }
-  .badge.done { background:#dbeafe; color:#1d4ed8; }
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Panel | Control Interno</title>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;600&display=swap">
+    {% load static %}
+  <link rel="stylesheet" href="{% static 'css/styles.css' %}">
 
 
-  /* =======================
-     RESPONSIVE
-     ======================= */
-  @media (max-width: 1024px) {
-    .layout { grid-template-columns: 200px 1fr; }
-  }
-  @media (max-width: 768px) {
-    .layout { grid-template-columns: 1fr; }
-    .sidebar { position: static; width: 100%; }
-  }
-
-  /* =======================
-     TOOLTIP MOTIVO
-     ======================= */
-  .tooltip-container { position: relative; cursor: pointer; }
-  .motivo-preview {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    max-width: 240px;
-    display: inline-block;
-  }
-  .tooltip-box {
-    display: none;
-    position: absolute;
-    top: 100%;
-    left: 0;
-    z-index: 999;
-    background: #ffffff;
-    padding: 10px 12px;
-    max-width: 320px;
-    border-radius: 6px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-    border: 1px solid #ddd;
-    white-space: normal;
-  }
-  .tooltip-container:hover .tooltip-box { display: block; }
-
-  /* =======================
-     BOTONES
-     ======================= */
-  .btn-filtrar,
-  .btn-limpiar,
-  .btn-excel { transition: all 0.25s ease; cursor: pointer; }
-
-  .btn-filtrar {
-    background: #1b7f6b;
-    color: white !important;
-    padding: 9px 16px;
-    border-radius: 6px;
-    font-weight: 600;
-    border: none;
-  }
-  .btn-filtrar:hover {
-    background: #145c50;
-    transform: translateY(-2px);
-    box-shadow: 0 3px 6px rgba(0,0,0,0.12);
-  }
-
-  .btn-limpiar {
-    background: #e2e8f0;
-    color:#1e293b !important;
-    padding: 8px 14px;
-    border-radius: 6px;
-    font-weight: 600;
-    text-decoration:none;
-  }
-  .btn-limpiar:hover {
-    background: #cbd5e1;
-    transform: translateY(-2px);
-    box-shadow: 0 3px 6px rgba(0,0,0,0.12);
-  }
-
-  .btn-excel {
-    background:#0b66a0;
-    color:white !important;
-    padding:8px 14px;
-    border-radius:6px;
-    font-weight:600;
-    text-decoration:none;
-    margin-left:8px;
-  }
-  .btn-excel:hover {
-    background:#084d78;
-    transform: translateY(-2px);
-    box-shadow: 0 3px 6px rgba(0,0,0,0.12);
-  }
-
-  .btn-respuesta {
-    padding: 6px 10px;
-    font-size: 13px;
-    border-radius: 6px;
-    border: none;
-    cursor: pointer;
-    background: #2563eb;
-    color: #fff;
-    transition: background 0.2s;
-  }
-  .btn-respuesta:hover { background: #1d4ed8; }
-
-
-/* Contenedor: ya tienes overflow-x/overflow-y, lo dejamos */
-.table-wrap{
-  overflow-x: auto;
-  overflow-y: auto;
-}
-
-/* 🔥 Lo importante: evita que la tabla se “achique” */
-.table-wrap table{
-  width: 100%;
-  min-width: 1200px;   /* 👈 ajusta: 1100, 1300, 1500 según tus columnas */
-  border-collapse: collapse;
-}
-
-/* (Opcional) evita que el texto parta y reduzca columnas */
-.table-wrap th,
-.table-wrap td{
-  white-space: nowrap;
-}
-
-</style>
-{% endblock %}
-
-{% block content %}
 <div class="layout">
   <!-- Sidebar -->
   <aside class="sidebar">
+
     <div class="brand">JAKSA</div>
     <ul class="menu">
-      <li><a href="{% url 'panel_control_interno' %}">Dashboard</a></li>
-      <li><a href="#" id="btnAbrirIncidencia">Registrar incidencia</a></li>
+
+      <li><a href="{% url 'panel_control_interno' %}">Panel Principal</a></li>
+      <li><a href="#" id="btnAbrirIncidencia">Registrar</a></li>
       <li><a href="{% url 'logout' %}">Cerrar sesión</a></li>
     </ul>
   </aside>
@@ -256,112 +24,117 @@
   <!-- Main content -->
   <section class="main">
     <div class="page-title">Sistema de control de incidencias</div>
+        <button class="hamburger" id="btnMenu">
+            ☰
+        </button>
     <p class="hello">Bienvenido {{ usuario_nombre }} — Terminal: <strong>{{ terminal_actual }}</strong></p>
 
-    <!-- === FILTROS DE BUSQUEDA === -->
-    <form method="get"
-        style="background:#f1f5f9; padding:14px; border-radius:10px; margin-bottom:18px; overflow-x:auto;">
+  <!-- === FILTROS DE BUSQUEDA === -->
+  <form method="get" class="filters">
+    <h3 class="filters__title">Filtros avanzados</h3>
 
-        <h3 style="margin:0 0 12px 0; color:#1b7f6b; font-weight:700;">Filtros avanzados</h3>
+    <div class="filters__grid">
 
-        <div style="display:flex; gap:22px; align-items:flex-start; flex-wrap:wrap;">
-            <!-- Fecha Incidencia -->
-            <div style="background:#e8f2ff; padding:10px 12px; border-radius:8px;">
-                <label style="display:block; font-size:14px; font-weight:700; margin-bottom:6px; color:#0057a3;">
-                    📅 Fecha de incidencia
-                </label>
-                <div style="display:flex; gap:10px;">
-                    <div style="display:flex; flex-direction:column;">
-                        <label style="font-size:12px;">Desde</label>
-                        <input type="date" name="f1" value="{{ f1 }}" style="padding:5px; min-width:130px;">
-                    </div>
-                    <div style="display:flex; flex-direction:column;">
-                        <label style="font-size:12px;">Hasta</label>
-                        <input type="date" name="f2" value="{{ f2 }}" style="padding:5px; min-width:130px;">
-                    </div>
-                </div>
-            </div>
+      <!-- Fecha Incidencia -->
+      <div class="filters__card filters__card--blue">
+        <label class="filters__label filters__label--blue">📅 Fecha de incidencia</label>
 
-            <!-- Fecha Revisión -->
-            <div style="background:#e8ffeb; padding:10px 12px; border-radius:8px;">
-                <label style="display:block; font-size:14px; font-weight:700; margin-bottom:6px; color:#0d6b28;">
-                    📋 Fecha de revisión
-                </label>
-                <div style="display:flex; gap:10px;">
-                    <div style="display:flex; flex-direction:column;">
-                        <label style="font-size:12px;">Desde</label>
-                        <input type="date" name="r1" value="{{ r1 }}" style="padding:5px; min-width:130px;">
-                    </div>
-                    <div style="display:flex; flex-direction:column;">
-                        <label style="font-size:12px;">Hasta</label>
-                        <input type="date" name="r2" value="{{ r2 }}" style="padding:5px; min-width:130px;">
-                    </div>
-                </div>
-            </div>
+        <div class="filters__row">
+          <div class="filters__field">
+            <label class="filters__small">Desde</label>
+            <input type="date" name="f1" value="{{ f1 }}" class="filters__input filters__input--date">
+          </div>
 
-            <!-- Otros filtros -->
-            <div style="background:#ffffff; padding:10px 12px; border-radius:8px; border:1px solid #e2e8f0;">
-                <label style="display:block; font-size:14px; font-weight:700; margin-bottom:6px; color:#333;">
-                    🔎 Otros filtros
-                </label>
-
-                <div style="display:flex; gap:14px;">
-                    <div style="display:flex; flex-direction:column;">
-                        <label style="font-size:12px;">Terminal</label>
-                        <select name="terminal" id="filtroTerminal" style="padding:5px; min-width:120px;">
-                            <option value="">Todos</option>
-                            {% for t in terminales %}
-                            <option value="{{ t.id_terminal }}"
-                                {% if terminal_selected == t.id_terminal|stringformat:'s' %}selected{% endif %}>
-                                {{ t.nombre_terminal }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div style="display:flex; flex-direction:column;">
-                        <label style="font-size:12px;">Estado</label>
-                        <select name="estado" style="padding:5px; min-width:120px;">
-                            <option value="">Todos</option>
-                            <option value="Conforme"  {% if estado == "Conforme"  %}selected{% endif %}>Conforme</option>
-                            <option value="Observado" {% if estado == "Observado" %}selected{% endif %}>Observado</option>
-                            <option value="Pendiente" {% if estado == "Pendiente" %}selected{% endif %}>Pendiente</option>
-                            <option value="Resuelto"  {% if estado == "Resuelto"  %}selected{% endif %}>Resuelto</option>
-                        </select>
-                    </div>
-
-                    <div style="display:flex; flex-direction:column;">
-                        <label style="font-size:12px;">Usuario</label>
-                        <select name="usuario" id="filtroUsuario" style="padding:5px; min-width:130px;">
-                            <option value="">Todos</option>
-                            {% for b in boleteros %}
-                            <option value="{{ b.usuario }}"
-                                data-terminal="{{ b.id_terminal_id }}"
-                                {% if usuario == b.usuario %}selected{% endif %}>
-                                {{ b.usuario }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div style="display:flex; flex-direction:column;">
-                        <label style="font-size:12px;">Control interno</label>
-                        <select name="ci" style="padding:5px; min-width:140px;">
-                            <option value="">Todos</option>
-                            {% for u in usuarios_ci %}
-                            <option value="{{ u.usuario_login }}"
-                                {% if ci == u.usuario_login %}selected{% endif %}>
-                                {{ u.usuario_login }}
-                            </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                </div>
-            </div>
+          <div class="filters__field">
+            <label class="filters__small">Hasta</label>
+            <input type="date" name="f2" value="{{ f2 }}" class="filters__input filters__input--date">
+          </div>
         </div>
+      </div>
+
+      <!-- Fecha Revisión -->
+      <div class="filters__card filters__card--green">
+        <label class="filters__label filters__label--green">📋 Fecha de revisión</label>
+
+        <div class="filters__row">
+          <div class="filters__field">
+            <label class="filters__small">Desde</label>
+            <input type="date" name="r1" value="{{ r1 }}" class="filters__input filters__input--date">
+          </div>
+
+          <div class="filters__field">
+            <label class="filters__small">Hasta</label>
+            <input type="date" name="r2" value="{{ r2 }}" class="filters__input filters__input--date">
+          </div>
+        </div>
+      </div>
+
+      <!-- Otros filtros -->
+      <div class="filters__card filters__card--white">
+        <label class="filters__label filters__label--dark">🔎 Otros filtros</label>
+
+        <div class="filters__row filters__row--wrap">
+          <div class="filters__field">
+            <label class="filters__small">Terminal</label>
+            <select name="terminal" id="filtroTerminal" class="filters__select filters__select--terminal">
+              <option value="">Todos</option>
+              {% for t in terminales %}
+              <option value="{{ t.id_terminal }}"
+                {% if terminal_selected == t.id_terminal|stringformat:'s' %}selected{% endif %}>
+                {{ t.nombre_terminal }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="filters__field">
+            <label class="filters__small">Estado</label>
+            <select name="estado" class="filters__select filters__select--estado">
+              <option value="">Todos</option>
+              <option value="Conforme"  {% if estado == "Conforme"  %}selected{% endif %}>Conforme</option>
+              <option value="Observado" {% if estado == "Observado" %}selected{% endif %}>Observado</option>
+              <option value="Pendiente" {% if estado == "Pendiente" %}selected{% endif %}>Pendiente</option>
+              <option value="Resuelto"  {% if estado == "Resuelto"  %}selected{% endif %}>Resuelto</option>
+            </select>
+          </div>
+
+          <div class="filters__field">
+            <label class="filters__small">Usuario</label>
+            <select name="usuario" id="filtroUsuario" class="filters__select filters__select--usuario">
+              <option value="">Todos</option>
+              {% for b in boleteros %}
+              <option value="{{ b.usuario }}"
+                data-terminal="{{ b.id_terminal_id }}"
+                {% if usuario == b.usuario %}selected{% endif %}>
+                {{ b.usuario }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="filters__field">
+            <label class="filters__small">Control interno</label>
+            <select name="ci" class="filters__select filters__select--ci">
+              <option value="">Todos</option>
+              {% for u in usuarios_ci %}
+              <option value="{{ u.usuario_login }}"
+                {% if ci == u.usuario_login %}selected{% endif %}>
+                {{ u.usuario_login }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  
+
 
         <div style="margin-top:18px; display:flex; gap:12px;">
-            <button type="submit" class="btn-filtrar">Filtrar</button>
+            <button type="submit" class="btn-filtrar">
+                Filtrar</button>
 
             <a href="{% url 'panel_control_interno' %}" class="btn-limpiar">
                 Limpiar
@@ -378,7 +151,7 @@
                 Producción hoy
             </button>
         </div>
-    </form>
+</form>    
 
     <!-- TABLA -->
     <div class="table-wrap">
@@ -481,9 +254,9 @@
     {% endif %}
   </section>
 </div>
-{% endblock %}
 
-{% block scripts %}
+
+
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
@@ -664,6 +437,21 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 </script>
 
+<script>
+  const btnMenu = document.getElementById('btnMenu');
+  const sidebar = document.querySelector('.sidebar');
+
+  btnMenu.addEventListener('click', () => {
+    sidebar.classList.toggle('open');
+  });
+  document.addEventListener('click', (e) => {
+  if (!sidebar.contains(e.target) && !btnMenu.contains(e.target)) {
+    sidebar.classList.remove('open');
+  }
+});
+</script>
+
+
 <!-- MODAL PARA REGISTRAR INCIDENCIA -->
 <div id="modalIncidencia"
      style="
@@ -784,4 +572,4 @@ document.addEventListener("DOMContentLoaded", () => {
     </form>
   </div>
 </div>
-{% endblock %}
+
