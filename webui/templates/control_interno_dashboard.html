@@ -215,7 +215,7 @@
               <td>
                 {% if r.estado == "Pendiente" and r.solucion_admin %}
                   <button class="btn-respuesta"
-                          data-respuesta="{{ r.solucion_admin|escapejs }}"
+                          data-respuesta="{{ r.solucion_admin}}"
                           data-evidencia="{{ r.evidencia_solucion }}"
                           data-id="{{ r.id_incidencia }}"
                           data-fecha-respuesta="{{ r.fecha_solucion|date:'d-m-Y' }}">

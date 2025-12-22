@@ -14,7 +14,7 @@
   <aside class="sidebar">
     <div class="brand">JAKSA</div>
     <ul class="menu">
-      <li><a href="{% url 'panel_admin_sistema' %}">Dashboard</a></li>
+      <li><a href="{% url 'panel_admin_sistema' %}">Panel Principal</a></li>
       <li><a href="{% url 'panel_boleteros' %}">Boleteros/Cajeros</a></li>
       <li><a href="{% url 'panel_incidencias' %}">Incidencias</a></li>
       <li><a href="{% url 'logout' %}">Cerrar sesión</a></li>
@@ -133,7 +133,7 @@
             <button type="submit" class="btn-filtrar">
                 Filtrar</button>
 
-            <a href="{% url 'panel_control_interno' %}" class="btn-limpiar">
+            <a href="{% url 'panel_incidencias' %}" class="btn-limpiar">
                 Limpiar
             </a>
 
@@ -142,11 +142,13 @@
             </a>
 
             <button type="submit"
-                name="produccion_hoy"
-                value="1"
-                style="padding:9px 16px; background:#4b5563; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">
+                    formaction="{% url 'panel_incidencias' %}"
+                    name="produccion_hoy"
+                    value="1"
+                    class="btn-produccion-hoy" style="padding:9px 16px; background:#4b5563; color:white; border:none; border-radius:6px; cursor:pointer; font-weight:600;">
                 Producción hoy
             </button>
+
         </div>
 </form> 
 

@@ -21,7 +21,7 @@
      ======================= */
   .layout {
     display: grid;
-    grid-template-columns: 260px 1fr; /* sidebar | contenido */
+    grid-template-columns: 220px 1fr; /* sidebar | contenido */
     gap: 0;
     width: 100%;
     min-height: 100vh;
@@ -41,7 +41,7 @@
     border-radius: 0;
   }
   .brand {
-    font-weight: 800;
+    font-weight: 800px;
     text-align: center;
     margin: 12px 0 12px;
     letter-spacing: .5px;
@@ -53,7 +53,7 @@
     padding: 18px 18px;
     color: #eafaf6;
     text-decoration: none;
-    font-size: 22px;
+    font-size: 18px;
     border-radius: 8px;
     margin: 2px 8px;
   }
@@ -81,14 +81,14 @@
     font-family: 'Segoe UI', sans-serif;
     background: #2a9c86;
     color: #fff;
-    font-weight: 800;
+    font-weight: 800px;
     padding: 14px 18px;
     border-radius: 8px;
     text-align: center;
     margin-bottom: 18px;
   }
   .hello { 
-    font-size: 30px;
+    font-size: 24px;
     margin: 8px 0 16px; 
     color: #374151; 
     
@@ -113,7 +113,7 @@
     font-family: 'Arial', sans-serif;
     padding:12px 10px; 
     border-bottom:1px solid #e5e7eb; 
-    font-size:18px; 
+    font-size:16px; 
 }
   th { 
     background:#e6f3f0; 
@@ -121,7 +121,7 @@
     text-align:left; 
 }
 
-  .badge { padding:4px 8px; border-radius:12px; font-size:18px; }
+  .badge { padding:4px 8px; border-radius:12px; font-size:16px; }
   .badge.ok { background:#e8f7ee; color:#1e7d3f; }
   .badge.warn { background:#fff3cd; color:#7a5d00; }
   .badge.pending { background:#f3e8ff; color:#6b21a8; }
@@ -234,9 +234,8 @@
 
   .btn-respuesta {
     font-family: 'Arial', sans-serif;
-    font-size: 16px;
-    padding: 6px 10px;
     font-size: 13px;
+    padding: 6px 10px;
     border-radius: 6px;
     border: none;
     cursor: pointer;
@@ -245,6 +244,19 @@
     transition: background 0.2s;
   }
   .btn-respuesta:hover { background: #1d4ed8; }
+
+    .btn-solucion {
+    font-family: 'Arial', sans-serif;
+    font-size: 13px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    background: #2563eb;
+    color: #fff;
+    transition: background 0.2s;
+  }
+  .btn-solucion:hover { background: #1d4ed8; }
 
 
 .table-wrap{
@@ -294,8 +306,8 @@
   .sidebar{
     position: fixed;
     top: 0;
-    left: -260px; /* oculto */
-    width: 260px;
+    left: -220px; /* oculto */
+    width: 220px;
     height: 100vh;
     z-index: 1000;
     transition: left 0.3s ease;
@@ -325,7 +337,7 @@
     position: fixed;
     top: 0;
     left: 0;
-    width: 260px;      /* 👈 debe coincidir con tu sidebar */
+    width: 220px;      /* 👈 debe coincidir con tu sidebar */
     height: 100vh;
     overflow-y: auto;
     z-index: 2000;
@@ -338,7 +350,7 @@
 
   /* empuja el contenido para que no quede debajo del menú */
   .main{
-    margin-left: 260px; /* 👈 igual al width del sidebar */
+    margin-left: 220px; /* 👈 igual al width del sidebar */
     min-width: 0;
   }
 }
@@ -373,7 +385,7 @@
     box-shadow: 0 2px 6px rgba(0,0,0,0.08);
     text-align: center;
   }
-  .card h3 { font-size: 16px; color: #2a9c86; margin-bottom: 6px; }
+  .card h3 { font-size: 20px; color: #2a9c86; margin-bottom: 6px; }
   .card p { font-size: 28px; font-weight: 800; margin: 0; color: #1b4f4a; }
 
 /* Cards por estado (mismo esquema que las badges) */
@@ -475,7 +487,7 @@
 
 .filters__label{
   display: block;
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
   margin-bottom: 6px;
 }
@@ -616,7 +628,7 @@
 .title-strip{
   background:#2a9c86;
   color:#fff;
-  font-weight:900;
+  font-weight:900px;
   letter-spacing:.5px;
   padding:18px;
   border-radius:10px;

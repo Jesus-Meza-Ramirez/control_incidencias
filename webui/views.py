@@ -727,10 +727,7 @@ def exportar_incidencias_excel(request):
     if ci_filter:
         qs = qs.filter(id_usuario__usuario_login__icontains=ci_filter)
 
-    # 🔹 Producción hoy
-    if produccion_hoy and uid:
-        today = timezone.localdate()
-        qs = qs.filter(id_usuario_id=uid, fecha_revision=today)
+
 
     # Limitar filas
     MAX_ROWS = 5000
@@ -896,7 +893,7 @@ def panel_incidencias(request):
     # ==========================
     # 🔍 Filtros GET
     # ==========================
-
+    produccion_hoy = request.GET.get("produccion_hoy")
     # Fecha incidencia
     f1 = request.GET.get("f1")   # desde
     f2 = request.GET.get("f2")   # hasta
@@ -979,7 +976,10 @@ def panel_incidencias(request):
             Q(id_bc__usuario__icontains=usuario_filter)
         )
 
- 
+ # 🎯 FILTRO: Producción hoy
+    if produccion_hoy:
+        today = timezone.localdate()
+        qs = qs.filter(fecha_revision=today)
 
     # ==========================
     # 🎯 Control interno
