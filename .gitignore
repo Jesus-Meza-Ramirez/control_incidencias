@@ -205,3 +205,10 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Django uploads & collected static (NO versionar)
+media/
+staticfiles/
+
+# archivos locales del server
+cookies.txt
