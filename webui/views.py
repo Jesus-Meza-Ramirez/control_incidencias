@@ -726,7 +726,21 @@ def exportar_incidencias_excel(request):
 
     if ci_filter:
         qs = qs.filter(id_usuario__usuario_login__icontains=ci_filter)
+        
 
+    # 🎯 FILTRO: Producción hoy
+    if produccion_hoy:
+        today = timezone.localdate()
+
+        rol = (request.session.get("rol") or "").lower()
+
+        # Si es CONTROL INTERNO: solo lo suyo
+        if rol == "control_interno" and uid:
+            qs = qs.filter(id_usuario_id=uid, fecha_revision=today)
+
+        # Si es ADMIN/otros paneles: todo lo de hoy
+        else:
+            qs = qs.filter(fecha_revision=today)
 
 
     # Limitar filas
