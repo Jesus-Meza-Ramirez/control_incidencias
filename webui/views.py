@@ -294,14 +294,13 @@ def panel_control_interno(request):
         "motivo": motivo_filter or "",
         "ci": ci_filter or "",
 
-        "boleteros": BoleteroCajero.objects.all(),
-        "terminales": Terminal.objects.all().order_by("id_terminal"),
+
 
         # NUEVOS SELECTS
         "usuarios_bc": BoleteroCajero.objects.filter(estado="activo").order_by("usuario"),
         "usuarios_ci": Usuario.objects.filter(rol="control_interno").order_by("nombre"),
             
-        "boleteros": BoleteroCajero.objects.all(),
+        "boleteros": BoleteroCajero.objects.filter(estado="activo").order_by("usuario"),
         "terminales": Terminal.objects.all().order_by("id_terminal"),
         "control_internos": Usuario.objects.filter(rol="control_interno"),
         

@@ -319,28 +319,40 @@
       });
     }
 
-    // --- filtro Terminal -> Boletero/Cajero (modal) ---
+    // --- filtro Terminal -> Boletero/Cajero (modal) con AUTOCOMPLETE ---
     const selTerminal = document.getElementById("terminalSelect");
-    const selBoletero = document.getElementById("boleteroSelect");
+    const boleteroInput = document.getElementById("boleteroInput");
+    const boleteroId    = document.getElementById("boleteroId");
+    const datalist      = document.getElementById("boleterosList");
 
-    if (selTerminal && selBoletero) {
-      const allBoleteros = Array.from(selBoletero.querySelectorAll("option[data-terminal]"));
+    if (selTerminal && boleteroInput && boleteroId && datalist) {
+      const allOptions = Array.from(datalist.querySelectorAll("option"));
 
-      selTerminal.addEventListener("change", function () {
-        const terminalSeleccionada = this.value;
+      function filtrarPorTerminal() {
+        const terminalSeleccionada = selTerminal.value;
 
-        selBoletero.querySelectorAll("option[data-terminal]").forEach(function (opt) {
-          opt.remove();
-        });
+        datalist.innerHTML = "";
 
-        allBoleteros.forEach(function (opt) {
+        allOptions.forEach(opt => {
           if (terminalSeleccionada === "" || opt.dataset.terminal === terminalSeleccionada) {
-            selBoletero.appendChild(opt);
+            datalist.appendChild(opt);
           }
         });
 
-        selBoletero.value = "";
+        boleteroInput.value = "";
+        boleteroId.value = "";
+      }
+
+      selTerminal.addEventListener("change", filtrarPorTerminal);
+
+      boleteroInput.addEventListener("input", () => {
+        const val = (boleteroInput.value || "").trim().toLowerCase();
+        const match = allOptions.find(opt => (opt.value || "").trim().toLowerCase() === val);
+
+        boleteroId.value = match ? match.dataset.id : "";
       });
+
+      filtrarPorTerminal();
     }
   });
   </script>
@@ -501,15 +513,30 @@
           {% endfor %}
         </select>
 
-        <label for="boleteroSelect">Boletero / Cajero (usuario):</label>
-        <select id="boleteroSelect" name="id_bc" required style="width:100%; margin-bottom:10px;">
-          <option value="">-- Seleccione --</option>
+        <label for="boleteroInput">Boletero / Cajero (usuario):</label>
+
+        <input
+          id="boleteroInput"
+          list="boleterosList"
+          placeholder="Escribe para buscar..."
+          autocomplete="off"
+          style="width:100%; margin-bottom:10px;"
+          required
+        />
+
+        <datalist id="boleterosList">
           {% for b in boleteros %}
-            <option value="{{ b.id_bc }}" data-terminal="{{ b.id_terminal_id }}">
-              {{ b.usuario }}
-            </option>
+            <option
+              value="{{ b.usuario }}"
+              data-id="{{ b.id_bc }}"
+              data-terminal="{{ b.id_terminal_id }}"
+            ></option>
           {% endfor %}
-        </select>
+        </datalist>
+
+        <!-- este es el que realmente se envía al backend -->
+        <input type="hidden" id="boleteroId" name="id_bc" required>
+
 
         <label for="fechaIncidencia">Fecha de incidencia:</label>
         <input type="date" id="fechaIncidencia" name="fecha_incidencia" required style="width:100%; margin-bottom:10px;">
